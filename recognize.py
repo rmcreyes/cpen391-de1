@@ -7,13 +7,15 @@ import load_ml
 
 GEN_BIN = False # when false, the script will use ML model to read plate
 DEBUG = True
-SHOW_CAM_FRAMES = True
+SHOW_CAM_FRAMES = True # TODO: does not work when False, should find a way to take photos without showing preview to reduce CPU usage
 
 USE_WEBCAM_NUMBER = 1 # starts at 0, set to 0 if you only have one webcam connected; I'm just using my secondary webcam
 
 def separate_sides(subarray, index):
+    # get the indices of either the top corners or right corners
+    # 0 - top corners ; 1 - right corners
 
-    top_indices = []
+    target_indices = []
     max_value = float('-inf')
     max_index = 0
     for idx,a in enumerate(subarray):
@@ -21,20 +23,22 @@ def separate_sides(subarray, index):
             max_index = idx
             max_value = a[index]
         
-    top_indices.append(max_index)
+    target_indices.append(max_index)
 
     max_value = float('-inf')
     for idx,a in enumerate(subarray):
-        if (a[index] > max_value) and (idx not in top_indices):
+        if (a[index] > max_value) and (idx not in target_indices):
             max_index = idx
             max_value = a[index]
 
-    top_indices.append(max_index)
+    target_indices.append(max_index)
 
 
-    return top_indices
+    return target_indices
 
 def take_photo():
+    # run webcam to take photo
+
     print("press g when you want to take the photo")
     # define a video capture object 
     vid = cv2.VideoCapture(USE_WEBCAM_NUMBER) 
@@ -51,16 +55,15 @@ def take_photo():
             marked_img = cv2.resize(frame, (600,400) )
             img = marked_img
 
-        # Display the resulting frame 
+        # show image with markings in where it found the rectangle
         if SHOW_CAM_FRAMES:
             cv2.imshow('frame', marked_img) 
         
+        # press g to take photo
         if cv2.waitKey(1) & 0xFF == ord('g'): 
             break
             
-        # the 'q' button is set as the 
-        # quitting button you may use any 
-        # desired button of your choice 
+        # press q to quit
         if cv2.waitKey(1) & 0xFF == ord('q'): 
             break
   
@@ -71,7 +74,53 @@ def take_photo():
 
     return img, cv2.resize(frame, (600,400) )
 
+def reorder_vertex_array(subarray):
+    # reorder the array of vertices to prepare to a re-skewing of image
+
+    topleft_index = 0
+    topright_index = 0
+    bottomleft_index = 0
+    bottomright_index = 0
+
+    top_indices = []
+    bottom_indices = []
+
+    top_indices = separate_sides(subarray, 1)
+    right_indices = separate_sides(subarray, 0)
+
+    for idx in range(len(subarray)):
+        if (idx in top_indices):
+            if (idx in right_indices):
+                topright_index = idx
+            else:
+                topleft_index = idx
+        else:
+            if (idx in right_indices):
+                bottomright_index = idx
+            else:
+                bottomleft_index = idx
+
+    subarray_rearranged = [subarray[i] for i in [bottomleft_index,bottomright_index,topleft_index,topright_index]]
+    return subarray_rearranged
+
+def straighten_crop(approx, img):
+    # re-skew array so that the image is a perfect rectangle
+    subarray = []
+    for a in approx:
+        # due to nature of shape, approx should only need first element extracted
+        subarray.append(a[0])
+    
+    subarray_rearranged = reorder_vertex_array(subarray)
+
+    pts_before = np.float32([subarray_rearranged])
+    pts_after = np.float32([[0,0],[600,0],[0,300],[600,300]])
+    perspective_transform = cv2.getPerspectiveTransform(pts_before,pts_after)
+    dst = cv2.warpPerspective(img,perspective_transform,(600,300))
+    return dst
+
 def find_plate(img):
+    # identify where the plate is in the photo and return the marked img and cropped img
+    # initial transforming
     img = cv2.resize(img, (600,400) )
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
@@ -83,7 +132,6 @@ def find_plate(img):
     dilated = cv2.dilate(edged, kernel)
 
     contours = cv2.findContours(dilated.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
     contours = imutils.grab_contours(contours)
 
 
@@ -91,6 +139,7 @@ def find_plate(img):
     screenCnt = None
     dst = None
     marked_img = None
+    # iterate through candidates
     for c in contours:
         
         peri = cv2.arcLength(c, True)
@@ -103,50 +152,14 @@ def find_plate(img):
             cv2.drawContours(marked_img,[approx], -1, (255, 0, 0), 2)
 
 
-            subarray = []
-            for a in approx:
-                subarray.append(a[0])
-            
-            #####
-            topleft_index = 0
-            topright_index = 0
-            bottomleft_index = 0
-            bottomright_index = 0
-
-            top_indices = []
-            bottom_indices = []
-
-            top_indices = separate_sides(subarray, 1)
-            right_indices = separate_sides(subarray, 0)
-
-            for idx in range(len(subarray)):
-                if (idx in top_indices):
-                    if (idx in right_indices):
-                        topright_index = idx
-                    else:
-                        topleft_index = idx
-                else:
-                    if (idx in right_indices):
-                        bottomright_index = idx
-                    else:
-                        bottomleft_index = idx
-
-            ##
-            
-            #####
-            subarray_rearranged = [subarray[i] for i in [bottomleft_index,bottomright_index,topleft_index,topright_index]]
-            pts1 = np.float32([subarray_rearranged])
-            pts2 = np.float32([[0,0],[600,0],[0,300],[600,300]])
-            M = cv2.getPerspectiveTransform(pts1,pts2)
-            dst = cv2.warpPerspective(img,M,(600,300))
-
-
-
+            dst = straighten_crop(approx, img)
             break
+
     return dst, marked_img
 
 def process_letter(img):
-    blur = cv2.blur(cropped_img,(10,10))
+    # make the letter formatted well for the ml model
+    blur = cv2.blur(img,(10,10))
     max_dimen = max(img.shape[0],img.shape[1])
     vert_border = int((max_dimen-img.shape[0])/2)
     hori_border = int((max_dimen-img.shape[1])/2)
@@ -154,48 +167,9 @@ def process_letter(img):
     image = cv2.resize(image, (28,28) )
     return image
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("file", nargs='?', const="")
-    args = parser.parse_args()
-
-
-    img = None
-    if args.file is None:
-        print("nothing specified.. starting camera")
-        dst,img = take_photo()
-        if (dst is None):
-            quit()
-    else:
-        img = cv2.imread(args.file,cv2.IMREAD_COLOR)
-        dst, _ = find_plate(img)
-        img = cv2.resize(img, (600,400) )
-
-    if (dst is None):
-        dst = img
-
-    if DEBUG:
-        cv2.imshow('image',dst)
-        cv2.waitKey(0)
-
-    hsv = cv2.cvtColor(dst, cv2.COLOR_BGR2HSV)
-
-    if DEBUG:
-        cv2.imshow('image',hsv)
-        cv2.waitKey(0)
-
-    # define range of black color in HSV to detect letters
-    lower_val = np.array([55,55,55])
-    upper_val = np.array([255, 255, 255])
-
-    # Threshold the HSV image to get only black colors
-    mask = cv2.inRange(hsv, lower_val, upper_val)
-
-    if DEBUG:
-        cv2.imshow('image',mask)
-        cv2.waitKey(0)
-
-
+def crop_letters(img):
+    # crop out 6 letters from plate
+    # TODO: make smarter algorithm for sensing letters and numbers
     padding = 6
     contours = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -241,16 +215,61 @@ if __name__ == "__main__":
 
             if (elem_num == 6):
                 break
+    return images
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", nargs='?', const="")
+    args = parser.parse_args()
+
+
+    img = None
+    if args.file is None:
+        # no arguments, start camera to take a photo
+        print("nothing specified.. starting camera")
+        dst,img = take_photo()
+        if (dst is None):
+            quit()
+    else:
+        # if a photo is passed in, read it in and use it
+        img = cv2.imread(args.file,cv2.IMREAD_COLOR)
+        dst, _ = find_plate(img)
+        img = cv2.resize(img, (600,400) )
+
+    if (dst is None):
+        dst = img
 
     if DEBUG:
         cv2.imshow('image',dst)
         cv2.waitKey(0)
 
+    hsv = cv2.cvtColor(dst, cv2.COLOR_BGR2HSV)
+
+    # define range of black color in HSV to detect letters
+    lower_val = np.array([55,55,55])
+    upper_val = np.array([255, 255, 255])
+
+    # Threshold the HSV image to get only black colors
+    mask = cv2.inRange(hsv, lower_val, upper_val)
+
+    if DEBUG:
+        cv2.imshow('image',mask)
+        cv2.waitKey(0)
+
+    # crop letters out of photo
+    images = crop_letters(img)
+
+    if DEBUG:
+        cv2.imshow('image',dst)
+        cv2.waitKey(0)
+
+    # sort keys by distance from the left
     keys = sorted(images.keys(), reverse=False)
     recog_imgs = []
     for key in keys:
         recog_imgs.append(images[key])
 
+    # either generate the bin files to perform low-level ML or use python ML to get answer
     if GEN_BIN:
         load_ml.create_bin(recog_imgs)
     else:
