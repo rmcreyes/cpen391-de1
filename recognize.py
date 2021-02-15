@@ -3,6 +3,7 @@ import imutils
 import numpy as np
 import argparse
 import load_ml
+import math
 
 
 GEN_BIN = False # when false, the script will use ML model to read plate
@@ -74,6 +75,10 @@ def take_photo():
 
     return img, cv2.resize(frame, (600,400) )
 
+def find_angle_between(p1, p2, p3):
+    angle = abs(math.atan2(p3[0] - p2[0], p3[1] - p2[1]) - math.atan2(p1[0] - p2[0], p1[1] - p2[1]))
+    return angle
+
 def reorder_vertex_array(subarray):
     # reorder the array of vertices to prepare to a re-skewing of image
 
@@ -100,7 +105,22 @@ def reorder_vertex_array(subarray):
             else:
                 bottomleft_index = idx
 
-    subarray_rearranged = [subarray[i] for i in [bottomleft_index,bottomright_index,topleft_index,topright_index]]
+    # should be in the order:
+    #  4 ---- 3
+    #  |      |
+    #  1 ---- 2
+
+
+    subarray_rearranged = [subarray[i] for i in [bottomleft_index, bottomright_index,topright_index, topleft_index]]
+
+    # for i in range(4):
+    #     i_1 = i % 4
+    #     i_2 = (i+1) % 4
+    #     i_3 = (i+2) % 4
+    #     print(find_angle_between(subarray_rearranged[i_1],subarray_rearranged[i_2],subarray_rearranged[i_3]))
+    
+    # print()
+
     return subarray_rearranged
 
 def straighten_crop(approx, img):
@@ -113,7 +133,7 @@ def straighten_crop(approx, img):
     subarray_rearranged = reorder_vertex_array(subarray)
 
     pts_before = np.float32([subarray_rearranged])
-    pts_after = np.float32([[0,0],[600,0],[0,300],[600,300]])
+    pts_after = np.float32([[0,0],[600,0],[600,300],[0,300]])
     perspective_transform = cv2.getPerspectiveTransform(pts_before,pts_after)
     dst = cv2.warpPerspective(img,perspective_transform,(600,300))
     return dst
@@ -168,10 +188,28 @@ def process_letter(img):
     return image
 
 def crop_letters(img):
+    
+    hsv = cv2.cvtColor(dst, cv2.COLOR_BGR2HSV)
+
+    # define range of black color in HSV to detect letters
+    lower_val = np.array([55,55,55])
+    upper_val = np.array([255, 255, 255])
+
+    # Threshold the HSV image to get only black colors
+    mask = cv2.inRange(hsv, lower_val, upper_val)
     # crop out 6 letters from plate
     # TODO: make smarter algorithm for sensing letters and numbers
+
+    
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(2,2))
+    dilated = cv2.dilate(mask, kernel)
+
+
+    if DEBUG:
+        cv2.imshow('image',dilated)
+        cv2.waitKey(0)
     padding = 6
-    contours = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     contours = imutils.grab_contours(contours)
     contours = sorted(contours, key = cv2.contourArea, reverse = True)[:10]
@@ -243,21 +281,8 @@ if __name__ == "__main__":
         cv2.imshow('image',dst)
         cv2.waitKey(0)
 
-    hsv = cv2.cvtColor(dst, cv2.COLOR_BGR2HSV)
-
-    # define range of black color in HSV to detect letters
-    lower_val = np.array([55,55,55])
-    upper_val = np.array([255, 255, 255])
-
-    # Threshold the HSV image to get only black colors
-    mask = cv2.inRange(hsv, lower_val, upper_val)
-
-    if DEBUG:
-        cv2.imshow('image',mask)
-        cv2.waitKey(0)
-
     # crop letters out of photo
-    images = crop_letters(img)
+    images = crop_letters(dst)
 
     if DEBUG:
         cv2.imshow('image',dst)
