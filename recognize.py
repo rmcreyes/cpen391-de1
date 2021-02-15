@@ -51,10 +51,10 @@ def take_photo():
         # Capture the video frame 
         ret, frame = vid.read() 
 
-        img, marked_img = find_plate(frame)
+        corner_points, marked_img = find_plate(frame)
         if (marked_img is None):
             marked_img = cv2.resize(frame, (600,400) )
-            img = marked_img
+            corner_points = [(0,0),(600,0),(600,400),(0,400)]
 
         # show image with markings in where it found the rectangle
         if SHOW_CAM_FRAMES:
@@ -73,10 +73,19 @@ def take_photo():
     # Destroy all the windows 
     cv2.destroyAllWindows() 
 
-    return img, cv2.resize(frame, (600,400) )
+    return corner_points, frame
+
+def distance_between_points(p2, p1):
+    return (((p2[0] - p1[0])**2)+((p2[1] - p1[1])**2))**0.5
 
 def find_angle_between(p1, p2, p3):
-    angle = abs(math.atan2(p3[0] - p2[0], p3[1] - p2[1]) - math.atan2(p1[0] - p2[0], p1[1] - p2[1]))
+    l3= distance_between_points(p2, p1)
+    l1= distance_between_points(p3, p2)
+    l2= distance_between_points(p1, p3)
+    try:
+        angle = (math.acos((l1+l3-l2)/(2*l3*l2))*180.0)/math.pi
+    except ValueError:
+        angle=0
     return angle
 
 def reorder_vertex_array(subarray):
@@ -113,24 +122,11 @@ def reorder_vertex_array(subarray):
 
     subarray_rearranged = [subarray[i] for i in [bottomleft_index, bottomright_index,topright_index, topleft_index]]
 
-    # for i in range(4):
-    #     i_1 = i % 4
-    #     i_2 = (i+1) % 4
-    #     i_3 = (i+2) % 4
-    #     print(find_angle_between(subarray_rearranged[i_1],subarray_rearranged[i_2],subarray_rearranged[i_3]))
-    
-    # print()
 
     return subarray_rearranged
 
-def straighten_crop(approx, img):
-    # re-skew array so that the image is a perfect rectangle
-    subarray = []
-    for a in approx:
-        # due to nature of shape, approx should only need first element extracted
-        subarray.append(a[0])
-    
-    subarray_rearranged = reorder_vertex_array(subarray)
+
+def straighten_crop(subarray_rearranged, img):
 
     pts_before = np.float32([subarray_rearranged])
     pts_after = np.float32([[0,0],[600,0],[600,300],[0,300]])
@@ -142,6 +138,7 @@ def find_plate(img):
     # identify where the plate is in the photo and return the marked img and cropped img
     # initial transforming
     img = cv2.resize(img, (600,400) )
+    corners = [(0,0),(600,0),(600,400),(0,400)]
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
     gray = cv2.bilateralFilter(gray, 13, 15, 15) 
@@ -156,26 +153,49 @@ def find_plate(img):
 
 
     contours = sorted(contours, key = cv2.contourArea, reverse = True)[:15]
-    screenCnt = None
     dst = None
     marked_img = None
     # iterate through candidates
     for c in contours:
+        if (cv2.contourArea(c) < 400*600/4):
+            break #frame should take at least a quarter of the screen
         
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.018 * peri, True)
 
         if len(approx) == 4:
+            print(cv2.contourArea(c))
+            # re-skew array so that the image is a perfect rectangle
+            subarray = []
+            for a in approx:
+                # due to nature of shape, approx should only need first element extracted
+                subarray.append(a[0])
 
-            screenCnt = approx
+            corners = reorder_vertex_array(subarray)
+
+            correct_angles = True
+            for i in range(4):
+                i_1 = i % 4
+                i_2 = (i+1) % 4
+                i_3 = (i+2) % 4
+                angle_between = find_angle_between(corners[i_1],corners[i_2],corners[i_3])
+                if (angle_between > 100.0 or angle_between < 80.0):
+                    correct_angles = False
+                    break
+
+            if (not correct_angles):
+                continue
+
+
             marked_img = img.copy()
             cv2.drawContours(marked_img,[approx], -1, (255, 0, 0), 2)
 
+            
 
-            dst = straighten_crop(approx, img)
             break
+        
 
-    return dst, marked_img
+    return corners, marked_img
 
 def process_letter(img):
     # make the letter formatted well for the ml model
@@ -265,15 +285,16 @@ if __name__ == "__main__":
     if args.file is None:
         # no arguments, start camera to take a photo
         print("nothing specified.. starting camera")
-        dst,img = take_photo()
-        if (dst is None):
+        corners,img = take_photo()
+        if (corners is None):
             quit()
     else:
         # if a photo is passed in, read it in and use it
         img = cv2.imread(args.file,cv2.IMREAD_COLOR)
-        dst, _ = find_plate(img)
-        img = cv2.resize(img, (600,400) )
+        corners, _ = find_plate(img)
 
+    img = cv2.resize(img, (600,400) )
+    dst = straighten_crop(corners, img)
     if (dst is None):
         dst = img
 
