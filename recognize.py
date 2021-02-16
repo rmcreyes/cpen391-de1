@@ -145,12 +145,17 @@ def find_plate(img):
 
     edged = cv2.Canny(gray, 20, 200) 
 
+
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(2,2))
     dilated = cv2.dilate(edged, kernel)
 
     contours = cv2.findContours(dilated.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     contours = imutils.grab_contours(contours)
 
+
+    # if DEBUG:
+    #     cv2.imshow('image',dilated)
+    #     cv2.waitKey(0)
 
     contours = sorted(contours, key = cv2.contourArea, reverse = True)[:15]
     dst = None
@@ -208,26 +213,36 @@ def process_letter(img):
     return image
 
 def crop_letters(img):
-    
-    hsv = cv2.cvtColor(dst, cv2.COLOR_BGR2HSV)
 
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    if DEBUG:
+        cv2.imshow('image',hsv)
+        cv2.waitKey(0)
     # define range of black color in HSV to detect letters
-    lower_val = np.array([55,55,55])
-    upper_val = np.array([255, 255, 255])
+    lower_val_1 = np.array([0,130,0]) # reds (for alberta)
+    upper_val_1 = np.array([10, 360, 360])
+
+    lower_val_2 = np.array([40,130,0]) # cool colours
+    upper_val_2 = np.array([360, 360, 360])
 
     # Threshold the HSV image to get only black colors
-    mask = cv2.inRange(hsv, lower_val, upper_val)
+    mask = cv2.inRange(hsv, lower_val_1, upper_val_1)
+    mask2 = cv2.inRange(hsv, lower_val_2, upper_val_2)
+
+    mask_final = cv2.bitwise_or(mask, mask2)
+
     # crop out 6 letters from plate
     # TODO: make smarter algorithm for sensing letters and numbers
 
     
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(2,2))
-    dilated = cv2.dilate(mask, kernel)
-
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+    dilated = cv2.morphologyEx(mask_final, cv2.MORPH_CLOSE, kernel)
 
     if DEBUG:
         cv2.imshow('image',dilated)
         cv2.waitKey(0)
+
     padding = 6
     contours = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -263,7 +278,7 @@ def crop_letters(img):
             if DEBUG:
                 cv2.rectangle(dst, (x_min, y_min), (x_max, y_max), (255, 0, 0), 2)
 
-            cropped_img = mask[y_min:y_max, x_min:x_max]
+            cropped_img = dilated[y_min:y_max, x_min:x_max]
             cropped_img = process_letter(cropped_img)
 
             images[x] = cropped_img
