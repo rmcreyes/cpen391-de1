@@ -31,7 +31,9 @@ def recog_images(images):
 
     final_str = ""
     for i in range(len(test_images)):
-        final_str += predict_map[np.argmax(predictions[i])]
+        most_probable_elem_index = np.argmax(predictions[i])
+        final_str += predict_map[most_probable_elem_index]
+        # print(predictions[i][np.argmax(predictions[i])])
 
     return final_str
 

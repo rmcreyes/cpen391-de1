@@ -4,14 +4,16 @@ import numpy as np
 import argparse
 import load_ml
 import math
+import time
+from datetime import datetime
 
-
+filename = "log_"
 GEN_BIN = False # when false, the script will use ML model to read plate
-DEBUG = True
+DEBUG = False
 SHOW_CAM_FRAMES = True # TODO: does not work when False, should find a way to take photos without showing preview to reduce CPU usage
 
 USE_WEBCAM_NUMBER = 1 # starts at 0, set to 0 if you only have one webcam connected; I'm just using my secondary webcam
-
+PHOTO_INTERVAL = 30 
 def separate_sides(subarray, index):
     # get the indices of either the top corners or right corners
     # 0 - top corners ; 1 - right corners
@@ -37,29 +39,97 @@ def separate_sides(subarray, index):
 
     return target_indices
 
+def within_range(elem1, elem2, count):
+    return (elem1 < elem2 + count and elem1 > elem2 - count)
+
+
+
 def take_photo():
     # run webcam to take photo
+
+    print("taking background photo")
 
     print("press g when you want to take the photo")
     # define a video capture object 
     vid = cv2.VideoCapture(USE_WEBCAM_NUMBER) 
-    
+
     img = None
     frame = None
+    should_skew = True
+    last_frame = None
+    frame_nums_without_detection = 0
+    frame_num_count = 0
+    prev_corners = []
+    consec_detect = 0
     while(True): 
+
+        if frame_num_count > 5:
+            if last_frame is not None:
+                frame_diff = cv2.absdiff(last_frame,frame)
+                print(frame_nums_without_detection)
+                if (frame_diff.sum() < 15000000):
+                    frame_nums_without_detection +=1
+                else:
+                    frame_nums_without_detection =0
+
+            frame_num_count = 0
+            last_frame = frame
         
+        frame_num_count+=1
+
         # Capture the video frame 
         ret, frame = vid.read() 
 
-        corner_points, marked_img = find_plate(frame)
+        corner_points, marked_img, should_skew = find_plate(frame)
         if (marked_img is None):
             marked_img = cv2.resize(frame, (600,400) )
-            corner_points = [(0,0),(600,0),(600,400),(0,400)]
+            corner_points = []
+
+            consec_detect = 0
+            prev_corners = []
+        else:
+            frame_nums_without_detection = 0
+            if (consec_detect > 0 ):
+                same_range  = True
+                for i in range(len(corner_points)):
+                    if (not within_range(corner_points[i][0],prev_corners[i][0],5)):
+                        same_range = False
+                        break
+                if same_range:
+                    consec_detect+=1
+                    prev_corners = corner_points
+
+                    if (consec_detect == 3):
+                        break
+                else:
+                    consec_detect = 0
+                    prev_corners = []
+            else:
+                consec_detect=1
+                prev_corners = corner_points
+                
+
+        if (frame_nums_without_detection > 20):
+            break
+
+
 
         # show image with markings in where it found the rectangle
         if SHOW_CAM_FRAMES:
+            # frame_diff = cv2.absdiff(background_frame,frame)
+            
+            # gray = cv2.cvtColor(frame_diff, cv2.COLOR_BGR2GRAY) 
+            # gray = cv2.bilateralFilter(gray, 13, 15, 15) 
+
+            # ret, image = cv2.threshold(gray, 25, 255, cv2.THRESH_BINARY)
+            # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(20,20))
+            # mask = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
+
+            # result = cv2.bitwise_and(frame, frame, mask=mask)
+            # cv2.imshow('frame', result) 
+            # frame = result
             cv2.imshow('frame', marked_img) 
-        
+
         # press g to take photo
         if cv2.waitKey(1) & 0xFF == ord('g'): 
             break
@@ -67,13 +137,12 @@ def take_photo():
         # press q to quit
         if cv2.waitKey(1) & 0xFF == ord('q'): 
             break
-  
     # After the loop release the cap object 
     vid.release() 
     # Destroy all the windows 
     cv2.destroyAllWindows() 
 
-    return corner_points, frame
+    return corner_points, frame, should_skew
 
 def distance_between_points(p2, p1):
     return (((p2[0] - p1[0])**2)+((p2[1] - p1[1])**2))**0.5
@@ -138,7 +207,8 @@ def find_plate(img):
     # identify where the plate is in the photo and return the marked img and cropped img
     # initial transforming
     img = cv2.resize(img, (600,400) )
-    corners = [(0,0),(600,0),(600,400),(0,400)]
+    corners = []
+    proportions_changed = False
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
     gray = cv2.bilateralFilter(gray, 13, 15, 15) 
@@ -162,14 +232,16 @@ def find_plate(img):
     marked_img = None
     # iterate through candidates
     for c in contours:
-        if (cv2.contourArea(c) < 400*600/4):
-            break #frame should take at least a quarter of the screen
-        
+
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.018 * peri, True)
+        if (cv2.contourArea(c) < 400*600/4):
+            break #frame should take at least a quarter of the screen
+        # else:
+        #     marked_img = img.copy()
+        #     cv2.drawContours(marked_img,[approx], -1, (0, 255, 0), 2)
 
         if len(approx) == 4:
-            print(cv2.contourArea(c))
             # re-skew array so that the image is a perfect rectangle
             subarray = []
             for a in approx:
@@ -195,12 +267,11 @@ def find_plate(img):
             marked_img = img.copy()
             cv2.drawContours(marked_img,[approx], -1, (255, 0, 0), 2)
 
-            
-
+            proportions_changed = True
             break
         
+    return corners, marked_img, proportions_changed
 
-    return corners, marked_img
 
 def process_letter(img):
     # make the letter formatted well for the ml model
@@ -220,11 +291,11 @@ def crop_letters(img):
         cv2.imshow('image',hsv)
         cv2.waitKey(0)
     # define range of black color in HSV to detect letters
-    lower_val_1 = np.array([0,130,0]) # reds (for alberta)
-    upper_val_1 = np.array([10, 360, 360])
+    lower_val_1 = np.array([0,140,0]) # reds (for alberta)
+    upper_val_1 = np.array([10, 255, 200])
 
-    lower_val_2 = np.array([40,130,0]) # cool colours
-    upper_val_2 = np.array([360, 360, 360])
+    lower_val_2 = np.array([40,140,0]) # cool colours
+    upper_val_2 = np.array([360, 255, 200])
 
     # Threshold the HSV image to get only black colors
     mask = cv2.inRange(hsv, lower_val_1, upper_val_1)
@@ -236,7 +307,7 @@ def crop_letters(img):
     # TODO: make smarter algorithm for sensing letters and numbers
 
     
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(4,4))
     dilated = cv2.morphologyEx(mask_final, cv2.MORPH_CLOSE, kernel)
 
     if DEBUG:
@@ -256,7 +327,7 @@ def crop_letters(img):
         
         x,y,w,h = cv2.boundingRect(c)
 
-        if (h < (img.shape[0]*0.125) or w>(img.shape[1]*0.5)):
+        if (h < (img.shape[0]*0.125) or w>(img.shape[1]*0.5) or w > h or h > 200 or h < w*(4/3)): # can't have height larger than half of the original image
             continue
 
         x_min = max(x-padding,0)
@@ -295,44 +366,65 @@ if __name__ == "__main__":
     parser.add_argument("file", nargs='?', const="")
     args = parser.parse_args()
 
+    filename = f"log - {datetime.today().strftime('%Y-%m-%d')}"
+    with open(filename, "w") as f:
+        f.write("START:\n")
 
-    img = None
-    if args.file is None:
-        # no arguments, start camera to take a photo
-        print("nothing specified.. starting camera")
-        corners,img = take_photo()
-        if (corners is None):
-            quit()
-    else:
-        # if a photo is passed in, read it in and use it
-        img = cv2.imread(args.file,cv2.IMREAD_COLOR)
-        corners, _ = find_plate(img)
+    done = False
+    while not done:
+        img = None
+        should_skew = True
+        if args.file is None:
+            # no arguments, start camera to take a photo
+            print("nothing specified.. starting camera")
+            corners,img, should_skew = take_photo()
+            if (corners is None):
+                quit()
+        else:
+            # if a photo is passed in, read it in and use it
+            img = cv2.imread(args.file,cv2.IMREAD_COLOR)
+            corners, _, should_skew = find_plate(img)
+            done = True
 
-    img = cv2.resize(img, (600,400) )
-    dst = straighten_crop(corners, img)
-    if (dst is None):
-        dst = img
+        img = cv2.resize(img, (600,400) )
+        if (should_skew):
+            dst = straighten_crop(corners, img)
+        else:
+            dst= img
+        if (dst is None):
+            dst = img
 
-    if DEBUG:
-        cv2.imshow('image',dst)
-        cv2.waitKey(0)
+        if DEBUG:
+            cv2.imshow('image',dst)
+            cv2.waitKey(0)
 
-    # crop letters out of photo
-    images = crop_letters(dst)
+        # crop letters out of photo
+        images = crop_letters(dst)
 
-    if DEBUG:
-        cv2.imshow('image',dst)
-        cv2.waitKey(0)
+        if DEBUG:
+            cv2.imshow('image',dst)
+            cv2.waitKey(0)
 
-    # sort keys by distance from the left
-    keys = sorted(images.keys(), reverse=False)
-    recog_imgs = []
-    for key in keys:
-        recog_imgs.append(images[key])
+        # sort keys by distance from the left
+        keys = sorted(images.keys(), reverse=False)
 
-    # either generate the bin files to perform low-level ML or use python ML to get answer
-    if GEN_BIN:
-        load_ml.create_bin(recog_imgs)
-    else:
-        plate_num = load_ml.recog_images(recog_imgs)
-        print(f"\n\nthe plate number is {plate_num}")
+        if (len(keys) <= 2):
+            print(f"only {len(keys)} elements found... not supported")
+            print(f"NOTHING PARKED - {datetime.now().time()}")
+            with open(filename, "a") as f:
+                f.write(f"NOTHING PARKED - {datetime.now().time()}\n")
+        else:
+            recog_imgs = []
+            for key in keys:
+                recog_imgs.append(images[key])
+            plate_num = "000 000"
+            # either generate the bin files to perform low-level ML or use python ML to get answer
+            if GEN_BIN:
+                load_ml.create_bin(recog_imgs)
+            else:
+                plate_num = load_ml.recog_images(recog_imgs)
+                print(f"\n\n{plate_num} PARKED - {datetime.now().time()}")
+
+            with open(filename, "a") as f:
+                f.write((f"{plate_num} PARKED - {datetime.now().time()}\n"))
+        time.sleep(PHOTO_INTERVAL)
