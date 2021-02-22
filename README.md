@@ -13,3 +13,7 @@ To run the code to detect using the camera every few seconds, use:
 
 If you have a pre-taken photo for detection, use:
 - `python recognize.py <path/to/file>`
+
+# TODO
+- Run better space detection and outlier detection
+- Split recognize.py into multiple files

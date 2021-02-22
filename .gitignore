@@ -4,3 +4,6 @@ samples/
 other/
 models/other/
 log*
+TEST*
+__pycache__/
+.vscode/

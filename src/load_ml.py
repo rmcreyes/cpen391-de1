@@ -12,7 +12,7 @@ def create_flat_imgs(images):
 
 def recog_images(images):
     from tensorflow import keras # only import tensorflow if necessary... it takes a while to import
-    model = keras.models.load_model('models/letterrecog1000_750_edited_2.h5')
+    model = keras.models.load_model('models/model_hl_1000_750.h5')
 
     # custom flattening for images before using them to predict
     test_images = create_flat_imgs(images)
