@@ -7,23 +7,32 @@ import math
 import time
 from datetime import datetime
 import sys
+from pathlib import Path   
 
 filename = "log_"
 GEN_BIN = False # when false, the script will use ML model to read plate
-DEBUG = True
-GEN_PHOTOS = False
-SHOW_CAM_FRAMES = True # TODO: does not work when False, should find a way to take photos without showing preview to reduce CPU usage
+DEBUG = True # when true, intermittent photos will pop up with letter extraction progress
+PROMPT_CHECKER = False # whether or not to compare result to given value ahead of time
+GEN_PHOTOS = False # whether to always generate letters extracted in output/*
+SHOW_CAM_FRAMES = True # whether or not to show camera frames when detecting
 
 USE_WEBCAM_NUMBER = 1 # starts at 0, set to 0 if you only have one webcam connected; I'm just using my secondary webcam
-PHOTO_INTERVAL = 15 
-def separate_sides(subarray, index):
+PHOTO_INTERVAL = 15 # number of seconds between shots
+
+# Given an array of corner co-ordinates, return the indices or the top (index = 0) or right (index = 1) corners
+# args:
+# > vertex_array: the input array of corner coorindates
+# > index: 0 if you want the top indices and 1 if you want the right indices.
+# returns:
+# > indices of requested side.
+def separate_sides(vertex_array, index):
     # get the indices of either the top corners or right corners
     # 0 - top corners ; 1 - right corners
 
     target_indices = []
     max_value = float('-inf')
     max_index = 0
-    for idx,a in enumerate(subarray):
+    for idx,a in enumerate(vertex_array):
         if (a[index] > max_value):
             max_index = idx
             max_value = a[index]
@@ -31,7 +40,7 @@ def separate_sides(subarray, index):
     target_indices.append(max_index)
 
     max_value = float('-inf')
-    for idx,a in enumerate(subarray):
+    for idx,a in enumerate(vertex_array):
         if (a[index] > max_value) and (idx not in target_indices):
             max_index = idx
             max_value = a[index]
@@ -41,13 +50,23 @@ def separate_sides(subarray, index):
 
     return target_indices
 
+
+# Given two numbers, find whether they are within <count> of one another
+# args:
+# > elem1, elem2: the two values to compare
+# > count: the maximum difference between the two elems
+# returns:
+# > whether the elems are within <count> apart
 def within_range(elem1, elem2, count):
     return (elem1 < elem2 + count and elem1 > elem2 - count)
 
+# Turn on camera and try to find edges of plate. If it cannot find it, take a photo after 50 loops of not much motion
+# returns:
+# > taken photo with any cropping performed if possible
 def take_photo():
     # run webcam to take photo
 
-    print("press g when you want to take the photo")
+    print("getting ready to take photo...")
     # define a video capture object 
     vid = cv2.VideoCapture(USE_WEBCAM_NUMBER) 
 
@@ -115,10 +134,6 @@ def take_photo():
         # show image with markings in where it found the rectangle
         if SHOW_CAM_FRAMES:
             cv2.imshow('frame', marked_img) 
-
-        # press g to take photo
-        if cv2.waitKey(1) & 0xFF == ord('g'): 
-            break
             
         # press q to quit
         if cv2.waitKey(1) & 0xFF == ord('q'): 
@@ -130,9 +145,19 @@ def take_photo():
 
     return corner_points, frame, should_skew
 
+# Given two points, magnitude of the vector they create
+# args:
+# > p1, p2: the two points to create the vector 
+# returns:
+# > the magnitude of the vector connecting P2 and P1
 def distance_between_points(p2, p1):
     return (((p2[0] - p1[0])**2)+((p2[1] - p1[1])**2))**0.5
 
+# Given three points, find the angle that p1-p2-p3 make
+# args:
+# > p1, p2, p3: the three points that create the angle
+# returns:
+# > the angle created from points
 def find_angle_between(p1, p2, p3):
     l3= distance_between_points(p2, p1)
     l1= distance_between_points(p3, p2)
@@ -143,7 +168,15 @@ def find_angle_between(p1, p2, p3):
         angle=0
     return angle
 
-def reorder_vertex_array(subarray):
+# Reorder the given array to be in the following order:
+#  4 ---- 3
+#  |      |
+#  1 ---- 2
+# args: v
+# > vertex_array: vertex array of square-like object
+# returns:
+# > vertex array in the above array order
+def reorder_vertex_array(vertex_array):
     # reorder the array of vertices to prepare to a re-skewing of image
 
     topleft_index = 0
@@ -154,10 +187,10 @@ def reorder_vertex_array(subarray):
     top_indices = []
     bottom_indices = []
 
-    top_indices = separate_sides(subarray, 1)
-    right_indices = separate_sides(subarray, 0)
+    top_indices = separate_sides(vertex_array, 1)
+    right_indices = separate_sides(vertex_array, 0)
 
-    for idx in range(len(subarray)):
+    for idx in range(len(vertex_array)):
         if (idx in top_indices):
             if (idx in right_indices):
                 topright_index = idx
@@ -175,19 +208,35 @@ def reorder_vertex_array(subarray):
     #  1 ---- 2
 
 
-    subarray_rearranged = [subarray[i] for i in [bottomleft_index, bottomright_index,topright_index, topleft_index]]
+    vertex_array_rearranged = [vertex_array[i] for i in [bottomleft_index, bottomright_index,topright_index, topleft_index]]
 
 
-    return subarray_rearranged
+    return vertex_array_rearranged
 
-def straighten_crop(subarray_rearranged, img):
+# Re-shape and crop an image based on new corner points in the following array order:
+#  4 ---- 3
+#  |      |
+#  1 ---- 2
+# args:
+# > new_corners: corners in the above array order
+# > img: the image to skew
+# returns:
+# > skewed/cropped image.
+def straighten_crop(new_corners, img):
 
-    pts_before = np.float32([subarray_rearranged])
+    pts_before = np.float32([new_corners])
     pts_after = np.float32([[0,0],[600,0],[600,300],[0,300]])
     perspective_transform = cv2.getPerspectiveTransform(pts_before,pts_after)
     dst = cv2.warpPerspective(img,perspective_transform,(600,300))
     return dst
 
+# Given a license plate, try to find the edges of the plate to reduce background clutter before letter extraction
+# args:
+# > img: full image with plate
+# returns:
+# > the corners of the actual plate if found
+# > the image marked with the rectangle detected (during above corners)
+# > whether or not the corners were found
 def find_plate(img):
     # identify where the plate is in the photo and return the marked img and cropped img
     # initial transforming
@@ -249,8 +298,12 @@ def find_plate(img):
         
     return corners, marked_img, proportions_changed
 
+# Make an extracted letter formatted well for the ML analysis
+# args:
+# > regular cropped letter image from original image
+# returns:
+# > image filtered and reduced for ML model.
 def process_letter(img):
-    # make the letter formatted well for the ml model
     blur = cv2.blur(img,(10,10))
     max_dimen = max(img.shape[0],img.shape[1])
     vert_border = int((max_dimen-img.shape[0])/2)
@@ -259,11 +312,23 @@ def process_letter(img):
     image = cv2.resize(image, (28,28) )
     return image
 
+# Create a factor of difference between (y1, h1) and (y2, h2)
+# args:
+# > y1, y2: two y-midpoints to compare
+# > h1, h2: two heights to compare
+# returns:
+# > weighted factor of the elements of 1 and 2.
 def compare_vals(y1, h1, y2, h2):
     factor_y=(abs((y1**2)-(y2**2)))**0.5
     factor_h=(abs((h1**2)-(h2**2)))**0.5
-    return factor_y +factor_h
+    return factor_y*2 +factor_h
 
+# Remove odd detected shapes from photo
+# args:
+# > img: dict mapping leftmost x-coordinate of character to image of character
+# > captured_data: data relating y-coordinate, height, and x-coordinate of each image
+# returns:
+# > new filtered dict mapping leftmost x-coordinate of character to image of character with no/less outliers
 def remove_outliers(images, captured_data):
 
     len_of_data = len(captured_data)
@@ -274,12 +339,12 @@ def remove_outliers(images, captured_data):
             comparison_arr[i][j] = compare_vals(captured_data[i][0],captured_data[i][1],captured_data[j][0],captured_data[j][1])
 
     indices_to_include = set()
-
-    print(comparison_arr)
-    while len(indices_to_include) < 7:
+    # print(comparison_arr)
+    while len(indices_to_include) <= 7:
         next_min = np.amin(comparison_arr)
         pair = np.unravel_index(np.argmin(comparison_arr),(len(comparison_arr),len(comparison_arr)))
-        if (next_min > 150):
+        
+        if (next_min > 125):
             break
         pair = sorted(pair)
         comparison_arr[pair[0]][pair[1]] = 10000
@@ -289,13 +354,18 @@ def remove_outliers(images, captured_data):
         indices_to_include.add(pair[0])
 
     final_images = {}
-
+    print(indices_to_include)
     for elem in indices_to_include:
         target_x = captured_data[elem][2]
         final_images[target_x] = images[target_x]
     
     return final_images
 
+# Crop plate letters out of photo
+# args: 
+# > img: image to crop letters out of
+# returns:
+# > dict mapping leftmost x-coordinate of character to image of character
 def crop_letters(img):
 
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -305,9 +375,9 @@ def crop_letters(img):
         cv2.waitKey(0)
     # define range of black color in HSV to detect letters
     lower_val_1 = np.array([0,120,0]) # reds (for alberta)
-    upper_val_1 = np.array([20, 255, 230])
+    upper_val_1 = np.array([10, 255, 230])
 
-    lower_val_2 = np.array([40,120,0]) # cool colours
+    lower_val_2 = np.array([50,120,0]) # cool colours
     upper_val_2 = np.array([360, 255, 230])
 
     # Threshold the HSV image to get only black colors
@@ -328,22 +398,24 @@ def crop_letters(img):
     contours = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     contours = imutils.grab_contours(contours)
-    contours = sorted(contours, key = cv2.contourArea, reverse = True)[:10]
+    contours = sorted(contours, key = cv2.contourArea, reverse = True)[:15]
 
     collected_rectangles = []
     images = {}
     captured_data = []
+    full_img_height = img.shape[0]
+    full_img_width = img.shape[1]
     for idx,c in enumerate(contours):
         
         x,y,w,h = cv2.boundingRect(c)
 
-        if (h < (img.shape[0]*0.125) or w>(img.shape[1]*0.5) or w > h or h > 200 or h < w*(4/3)): # can't have height larger than half of the original image
+        if (h < (full_img_height*0.125) or w>(full_img_width*0.5) or w > h or h > 200 or h < w*(4/3)): # ensure shape has reasonable proportions
             continue
 
         x_min = max(x-padding,0)
         y_min = max(y-padding,0)
-        x_max = min(x+w+padding,img.shape[1])
-        y_max = min(y+h+padding,img.shape[0])
+        x_max = min(x+w+padding,full_img_width)
+        y_max = min(y+h+padding,full_img_height)
 
         y_midpoint = (y_min+y_max)/2.0
 
@@ -372,6 +444,12 @@ def crop_letters(img):
 
     return final_images
 
+# Apply spaces to extracted letters based on how far they are from one another in the photo
+# args:
+# > keys: keys containing x-coordinates of analyzed images 
+# > plate_num: the output plate number without spaces
+# returns:
+# > New plate number after analysis
 def apply_spaces(keys,plate_num):
     prev_left = keys[0]
     space_tracker = []
@@ -412,7 +490,15 @@ def apply_spaces(keys,plate_num):
             spaces_added += space_tracker[i]
     return plate_num
 
-def perform_read(corners,img,should_skew):
+# Read the plate number from the given image
+# args: 
+# > the corners used to crop the original image 
+# > the image to crop and detect
+# > whether or not the function should use the aforementioned corners to skew the image
+# > if nonempty, contains the actual value for the plate to compare (for debugging)
+# returns:
+# > the detected plate number
+def perform_read(corners,img,should_skew, should_be):
         img = cv2.resize(img, (600,400) )
         if (should_skew):
             dst = straighten_crop(corners, img)
@@ -451,19 +537,36 @@ def perform_read(corners,img,should_skew):
                 load_ml.create_bin(recog_imgs)
             else:
                 plate_num = load_ml.recog_images(recog_imgs)
+                
+                should_be = should_be.replace(" ", "")
+                if len(should_be) > 0:
+                    for i in range(len(plate_num)):
+                        try:
+                            if should_be[i] != plate_num[i]:
+                                cv2.imwrite(f"./output/{should_be[i]}_{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
+                        except IndexError:
+                            cv2.imwrite(f"./output/{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
+
                 plate_num = apply_spaces(keys, plate_num)
+
+                            
 
                 print(f"\n\n\'{plate_num}\' PARKED - {datetime.now().time()}")
 
 
             return plate_num
 
+# Perform a read from the camera every <PHOTO_INTERVAL> seconds and writes results to a file called "log - <DATE>"
 def perform_reading_loop():
 
     filename = f"log - {datetime.today().strftime('%Y-%m-%d')}.txt"
     with open(filename, "w") as f:
         f.write("START:\n")
         
+    should_be = ""
+    if PROMPT_CHECKER:
+        should_be = input("what is the plate number of what you're about to scan?")
+
     while True:
         img = None
         should_skew = True
@@ -471,20 +574,30 @@ def perform_reading_loop():
         if (corners is None):
             break
 
-        plate_num = perform_read(corners,img,should_skew)
+        plate_num = perform_read(corners,img,should_skew,should_be)
 
         writing_str = f"{plate_num} PARKED - {datetime.now().time()}\n"
         with open(filename, "a") as f:
             f.write(writing_str)
         time.sleep(PHOTO_INTERVAL)
         
+# Read a singular file into algorithm and return
+# args:
+# > file: path to photo to analyze
+# returns:
+# > the detected plate number
 def perform_reading_singular(file):
     img = None
     should_skew = True
     # if a photo is passed in, read it in and use it
     img = cv2.imread(file,cv2.IMREAD_COLOR)
     corners, _, should_skew = find_plate(img)
-    perform_read(corners,img,should_skew)
+
+    plate_name = ""
+    if PROMPT_CHECKER:
+        plate_name = Path(file).name
+        plate_name = plate_name[:plate_name.find(".")]
+    return perform_read(corners,img,should_skew,plate_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

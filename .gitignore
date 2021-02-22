@@ -1,3 +1,6 @@
 venv/
 output/*
 samples/
+other/
+models/other/
+log*
