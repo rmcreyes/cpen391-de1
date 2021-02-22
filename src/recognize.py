@@ -112,10 +112,10 @@ def perform_reading_singular(file):
     should_skew = True
     # if a photo is passed in, read it in and use it
     img = cv2.imread(file,cv2.IMREAD_COLOR)
-    corners, _, should_skew = find_plate(img)
+    corners, _, should_skew = photo_preprocessing.find_plate(img)
 
     plate_name = ""
-    if PROMPT_CHECKER:
+    if constants.PROMPT_CHECKER:
         plate_name = Path(file).name
         plate_name = plate_name[:plate_name.find(".")]
     return perform_read(corners,img,should_skew,plate_name)

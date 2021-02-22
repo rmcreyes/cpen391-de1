@@ -1,6 +1,6 @@
 OUTPUT_FILENAME = "log_"
 GEN_BIN = False # when false, the script will use ML model to read plate
-DEBUG = True # when true, intermittent photos will pop up with letter extraction progress
+DEBUG = False # when true, intermittent photos will pop up with letter extraction progress
 PROMPT_CHECKER = False # whether or not to compare result to given value ahead of time
 GEN_PHOTOS = False # whether to always generate letters extracted in output/*
 SHOW_CAM_FRAMES = True # whether or not to show camera frames when detecting
