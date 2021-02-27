@@ -19,7 +19,7 @@ import platenum_postprocessing
 # > whether or not the function should use the aforementioned corners to skew the image
 # > if nonempty, contains the actual value for the plate to compare (for debugging)
 # returns:
-# > the detected plate number
+# > the detected plate number, empty if no plate detected
 def perform_read(corners,img,should_skew, should_be):
     img = cv2.resize(img, constants.RESIZE_SIZE )
     if (should_skew):
@@ -45,8 +45,7 @@ def perform_read(corners,img,should_skew, should_be):
     if (len(keys) <= 2):
         print(f"only {len(keys)} elements found... not supported")
         print(f"NOTHING PARKED - {datetime.now().time()}")
-        with open(filename, "a") as f:
-            f.write(f"NOTHING PARKED - {datetime.now().time()}\n")
+        return ""
     else:
         
         recog_imgs = []
@@ -96,8 +95,10 @@ def perform_reading_loop():
             break
 
         plate_num = perform_read(corners,img,should_skew,should_be)
-
-        writing_str = f"{plate_num} PARKED - {datetime.now().time()}\n"
+        if len(plate_num) == 0:
+            writing_str = f"NOTHING PARKED - {datetime.now().time()}\n"
+        else:
+            writing_str = f"{plate_num} PARKED - {datetime.now().time()}\n"
         with open(filename, "a") as f:
             f.write(writing_str)
         time.sleep(constants.PHOTO_INTERVAL)
