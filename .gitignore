@@ -7,3 +7,6 @@ log*
 TEST \-*
 __pycache__/
 .vscode/
+archive
+demo
+custom_data

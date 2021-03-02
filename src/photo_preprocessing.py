@@ -233,6 +233,9 @@ def find_plate(img):
 
     edged = cv2.Canny(gray, 20, 200) 
 
+    if constants.SAVE_DEBUG:
+        cv2.imwrite("canny_after.png",edged)
+        cv2.imwrite("canny_before.png",img)
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(2,2))
     dilated = cv2.dilate(edged, kernel)
