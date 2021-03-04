@@ -27,9 +27,16 @@ def perform_read(corners,img,should_skew, should_be):
     else:
         dst= img
 
+    if constants.SAVE_DEBUG or constants.SAVE_ORIGINALS:
+        now = datetime.now()
+        newfilename = f"./intermediate_photos/{datetime.today().strftime('%Y-%m-%d_%H%M%S')}.png"
+        print(newfilename)
+        cv2.imwrite(newfilename,dst)
+
     if constants.DEBUG:
         cv2.imshow('image',dst)
         cv2.waitKey(0)
+
 
     # crop letters out of photo
     images = letter_extraction.crop_letters(dst)
@@ -43,7 +50,6 @@ def perform_read(corners,img,should_skew, should_be):
     keys = sorted(images.keys(), reverse=False)
 
     if (len(keys) <= 2):
-        print(f"only {len(keys)} elements found... not supported")
         print(f"NOTHING PARKED - {datetime.now().time()}")
         return ""
     else:
@@ -85,7 +91,7 @@ def perform_reading_loop():
         
     should_be = ""
     if constants.PROMPT_CHECKER:
-        should_be = input("what is the plate number of what you're about to scan?")
+        should_be = input("what is the plate number of what you're about to scan?\n> ")
 
     while True:
         img = None

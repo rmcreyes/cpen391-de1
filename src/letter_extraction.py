@@ -3,6 +3,7 @@ import constants
 import numpy as np
 import imutils
 import matplotlib.pyplot as plt 
+import datetime
 
 # Make an extracted letter formatted well for the ML analysis
 # args:
@@ -72,6 +73,9 @@ def linear_fit(x, y):
 # > new filtered dict mapping leftmosdt x-coordinate of character to image of character with no/less outliers
 def remove_outliers(images, x_pts, y_pts, h_pts):
 
+    final_images = {}
+    if len(x_pts) == 0:
+        return final_images
     # use error of sum of squares to ensure that letters follow linear pattern
     polyfit_obj = linear_fit(x_pts, y_pts)
     sse = abs(polyfit_obj["sse"])**0.5
@@ -85,10 +89,9 @@ def remove_outliers(images, x_pts, y_pts, h_pts):
     # remove outliers from heights
     indices_to_remove = set()
     for i, h in enumerate(h_pts):
-        if abs(h_pts[i] - np.mean(h_pts)) > 2*np.std(h_pts):
+        if abs(h_pts[i] - np.mean(h_pts)) > 2.25*np.std(h_pts):
             indices_to_remove.add(i)
 
-    final_images = {}
     for i,x in enumerate(x_pts):
         if (not i in indices_to_remove):
             final_images[x] = images[x]
@@ -127,9 +130,6 @@ def crop_letters(img):
     if constants.DEBUG:
         cv2.imshow('image',dilated)
         cv2.waitKey(0)
-        if constants.SAVE_DEBUG:
-            cv2.imwrite("filtered.png",dilated)
-            cv2.imwrite("origin.png",img)
 
     padding = 6
     contours = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)

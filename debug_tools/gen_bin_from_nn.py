@@ -1,17 +1,18 @@
 from tensorflow import keras
 import numpy as np
-import matplotlib.pyplot as plt
-import emnist
-import random
-from PIL import Image
 import os
-import struct
+import argparse
 
-model = keras.models.load_model("letterrecog256_mod_3.h5")
+parser = argparse.ArgumentParser()
+parser.add_argument("file", nargs='?', const="")
+args = parser.parse_args()
+
+model = keras.models.load_model(args.file)
+
+str_label = args.file[0:args.file.find(".")]
 
 final_nums = np.array([], dtype='float32')
 for i in range(0,len(model.layers)):
-    print(i)
     layer = model.layers[i].get_weights()
 
     final_nums = np.append(final_nums,layer[1])
@@ -20,8 +21,8 @@ for i in range(0,len(model.layers)):
     weights = layer[0]
 
     j = 0
-    print(len(weights[0]))
-    print(len(weights))
+    print(f"L{i} input: {len(weights)}")
+    print(f"L{i} output: {len(weights[0])}")
     while j < len(weights[0]):
         for i in range(len(weights)):
             final_weights.append(weights[i][j])
@@ -29,7 +30,5 @@ for i in range(0,len(model.layers)):
 
     final_nums = np.append(final_nums,final_weights)
 
-np.savetxt('output.bin', final_nums, fmt="%f")
-
 final_nums = np.array(final_nums*65536.0,dtype="int32")
-final_nums.tofile("output2.bin")
+final_nums.tofile(f"{str_label}_generated_nn.bin")

@@ -67,4 +67,4 @@ print('\nTest accuracy:', test_acc)
 
 predictions = model.predict(test_images)
 
-model.save('letterrecog1000_750_edited_4.h5')
+model.save('letterrecog1000_750.h5')

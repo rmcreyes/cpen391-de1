@@ -41,6 +41,6 @@ def create_bin(images):
         mod_img = img.flatten()
         mod_img = mod_img/255.0
 
-        # images must be multiplied by 2^16, as needed by lower level process
+        # images must be multiplied by 2^16, as needed by lower level process Q16.16 floating point
         mod_img = np.array(mod_img*65536.0,dtype="int32")
         mod_img.tofile(f"output/custom_char_{i}.bin")
