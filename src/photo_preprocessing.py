@@ -82,6 +82,7 @@ def take_photo():
         ret, frame = vid.read() 
 
         corner_points, marked_img, should_skew = find_plate(frame)
+
         if (marked_img is None):
             marked_img = cv2.resize(frame, constants.RESIZE_SIZE )
             corner_points = []
@@ -227,6 +228,10 @@ def find_plate(img):
     img = cv2.resize(img, constants.RESIZE_SIZE  )
     corners = []
     proportions_changed = False
+
+
+    if not constants.FIND_EDGES:
+        return corners, None, proportions_changed
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
     gray = cv2.bilateralFilter(gray, 13, 15, 15) 
