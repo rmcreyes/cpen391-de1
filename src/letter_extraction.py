@@ -2,7 +2,6 @@ import cv2
 import constants
 import numpy as np
 import imutils
-import matplotlib.pyplot as plt 
 import datetime
 
 # Make an extracted letter formatted well for the ML analysis
@@ -51,6 +50,8 @@ def linear_fit(x, y):
     ybar = np.sum(y)/len(y)     
 
     if constants.SAVE_DEBUG:
+        
+        import matplotlib.pyplot as plt 
         e = (y-yhat)
         fig = plt.figure()
         plt.errorbar(x, y, yerr=e, fmt='o', linewidth=0.5)
