@@ -11,6 +11,7 @@ import photo_preprocessing
 import letter_extraction
 import load_ml
 import platenum_postprocessing
+import c_interfacing_utils
 
 # Read the plate number from the given image
 # args: 
@@ -57,27 +58,27 @@ def perform_read(corners,img,should_skew, should_be):
         recog_imgs = []
         for key in keys:
             recog_imgs.append(images[key])
-        plate_num = "000 000"
+            
         # either generate the bin files to perform low-level ML or use python ML to get answer
         if constants.GEN_BIN:
-            load_ml.create_bin(recog_imgs)
+            plate_num = load_ml.recog_images_c(recog_imgs)
         else:
-            plate_num = load_ml.recog_images(recog_imgs)
-            
-            should_be = should_be.replace(" ", "")
-            if len(should_be) > 0:
-                for i in range(len(plate_num)):
-                    try:
-                        if should_be[i] != plate_num[i]:
-                            cv2.imwrite(f"./output/{should_be[i]}_{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
-                    except IndexError:
-                        cv2.imwrite(f"./output/{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
+            plate_num = load_ml.recog_images_tensorflow(recog_imgs)
+        
+        should_be = should_be.replace(" ", "")
+        if len(should_be) > 0:
+            for i in range(len(plate_num)):
+                try:
+                    if should_be[i] != plate_num[i]:
+                        cv2.imwrite(f"./output/{should_be[i]}_{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
+                except IndexError:
+                    cv2.imwrite(f"./output/{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
 
-            plate_num = platenum_postprocessing.apply_spaces(keys, plate_num)
+        plate_num = platenum_postprocessing.apply_spaces(keys, plate_num)
 
-                        
+                    
 
-            print(f"\n\n\'{plate_num}\' PARKED - {datetime.now().time()}")
+        print(f"\n\n\'{plate_num}\' PARKED - {datetime.now().time()}")
 
 
         return plate_num
@@ -128,6 +129,10 @@ def perform_reading_singular(file):
     return perform_read(corners,img,should_skew,plate_name)
 
 if __name__ == "__main__":
+    
+    if constants.GEN_BIN:
+        c_interfacing_utils.load_c_nn()
+
     parser = argparse.ArgumentParser()
     parser.add_argument("file", nargs='?', const="")
     args = parser.parse_args()

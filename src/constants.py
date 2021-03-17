@@ -7,7 +7,7 @@ SHOW_CAM_FRAMES = True # whether or not to show camera frames when detecting
 SAVE_DEBUG = False # whether to save demo photos
 SAVE_ORIGINALS = True
 
-USE_WEBCAM_NUMBER = 1 # starts at 0, set to 0 if you only have one webcam connected; I'm just using my secondary webcam
+USE_WEBCAM_NUMBER = 0 # starts at 0, set to 0 if you only have one webcam connected; I'm just using my secondary webcam
 PHOTO_INTERVAL = 5 # number of seconds between shots
 
 # sizes for resized photos 
