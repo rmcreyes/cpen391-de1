@@ -11,7 +11,7 @@ if constants.GEN_BIN:
     x = CDLL('./src/compiled_c/libnn.so')
 
 def load_c_nn():
-    bin_arr = np.fromfile('models/generated_nn.bin', dtype='int32')
+    bin_arr = np.fromfile('models/model_hl_1000_750_generated_nn.bin', dtype='int32')
 
     num_elems = len(bin_arr)
 
