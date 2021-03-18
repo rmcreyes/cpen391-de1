@@ -1,7 +1,9 @@
 
 import numpy as np
 import os
-import c_interfacing_utils
+import constants
+if not constants.CREATE_BIN:
+    import c_interfacing_utils
 
 # mapping labels to actual character
 # 0-9 represents the 0-9 characters
@@ -44,6 +46,10 @@ def recog_images_c(images):
 
         # images must be multiplied by 2^16, as needed by lower level process Q16.16 floating point
         mod_img = np.array(mod_img*65536.0,dtype="int32")
-        most_probable_elem_index = c_interfacing_utils.run_c_nn(mod_img)
-        final_str += predict_map[most_probable_elem_index]
+        if constants.CREATE_BIN:
+            mod_img.tofile(f"output/custom_char_{i}.bin")
+        else:
+            most_probable_elem_index = c_interfacing_utils.run_c_nn(mod_img)
+            final_str += predict_map[most_probable_elem_index]
+
     return final_str

@@ -11,7 +11,8 @@ import photo_preprocessing
 import letter_extraction
 import load_ml
 import platenum_postprocessing
-import c_interfacing_utils
+if not constants.CREATE_BIN:
+    import c_interfacing_utils
 
 # Read the plate number from the given image
 # args: 
@@ -22,6 +23,9 @@ import c_interfacing_utils
 # returns:
 # > the detected plate number, empty if no plate detected
 def perform_read(corners,img,should_skew, should_be):
+    resize_width = int(constants.RESIZE_SIZE[1]/img.shape[0]*img.shape[1])
+    constants.RESIZE_SIZE = (resize_width, constants.RESIZE_SIZE[1])
+    print(resize_width)
     img = cv2.resize(img, constants.RESIZE_SIZE )
     if (should_skew):
         dst = photo_preprocessing.straighten_crop(corners, img)
@@ -58,7 +62,7 @@ def perform_read(corners,img,should_skew, should_be):
         recog_imgs = []
         for key in keys:
             recog_imgs.append(images[key])
-            
+
         # either generate the bin files to perform low-level ML or use python ML to get answer
         if constants.GEN_BIN:
             plate_num = load_ml.recog_images_c(recog_imgs)
@@ -130,7 +134,7 @@ def perform_reading_singular(file):
 
 if __name__ == "__main__":
     
-    if constants.GEN_BIN:
+    if constants.GEN_BIN and not constants.CREATE_BIN:
         c_interfacing_utils.load_c_nn()
 
     parser = argparse.ArgumentParser()
