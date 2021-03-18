@@ -80,6 +80,16 @@ def take_photo():
 
         # Capture the video frame 
         ret, frame = vid.read() 
+        
+        # capture 480 by 640 photo for consistency 
+        if (frame.shape[0] > 480  or frame.shape[1] > 640):
+            center_y_offset = 640/2
+            center_x_offset = 480/2
+            y_midpoint = int(frame.shape[0]/2)
+            x_midpoint = int(frame.shape[1]/2)
+            frame = frame[y_midpoint-center_y_offset:y_midpoint+center_y_offset,x_midpoint-center_x_offset:x_midpoint+center_x_offset]
+
+        cv2.imwrite("./debug_img.png",frame)
 
         corner_points, marked_img, should_skew = find_plate(frame)
 
