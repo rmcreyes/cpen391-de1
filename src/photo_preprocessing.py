@@ -52,7 +52,10 @@ def take_photo():
 
     print("getting ready to take photo...")
     # define a video capture object 
-    vid = cv2.VideoCapture(constants.USE_WEBCAM_NUMBER) 
+    vid = cv2.VideoCapture(constants.USE_WEBCAM_NUMBER,cv2.CAP_DSHOW) 
+
+    vid.set(cv2.CAP_PROP_FRAME_WIDTH, int(640))
+    vid.set(cv2.CAP_PROP_FRAME_HEIGHT, int(480))
 
     img = None
     frame = None
@@ -81,18 +84,20 @@ def take_photo():
         # Capture the video frame 
         ret, frame = vid.read() 
         
-
+        resize_width = int(constants.RESIZE_SIZE[1]/frame.shape[0]*frame.shape[1])
+        constants.RESIZE_SIZE = (resize_width, constants.RESIZE_SIZE[1])
 
         corner_points, marked_img, should_skew = find_plate(frame)
 
         if (marked_img is None):
+
             marked_img = cv2.resize(frame, constants.RESIZE_SIZE )        # capture 480 by 640 photo for consistency 
-            if (marked_img is not None and (marked_img.shape[0] > constants.FRAME_SIZE[1]  or marked_img.shape[1] > constants.FRAME_SIZE[0])):
-                center_x_offset = int(constants.FRAME_SIZE[0]/2)
-                center_y_offset = int(constants.FRAME_SIZE[1]/2)
-                y_midpoint = int(marked_img.shape[0]/2)
-                x_midpoint = int(marked_img.shape[1]/2)
-                marked_img = marked_img[y_midpoint-center_y_offset:y_midpoint+center_y_offset,x_midpoint-center_x_offset:x_midpoint+center_x_offset]
+            # if (marked_img is not None and (marked_img.shape[0] > constants.FRAME_SIZE[1]  or marked_img.shape[1] > constants.FRAME_SIZE[0])):
+            #     center_x_offset = int(constants.FRAME_SIZE[0]/2)
+            #     center_y_offset = int(constants.FRAME_SIZE[1]/2)
+            #     y_midpoint = int(marked_img.shape[0]/2)
+            #     x_midpoint = int(marked_img.shape[1]/2)
+            #     marked_img = marked_img[y_midpoint-center_y_offset:y_midpoint+center_y_offset,x_midpoint-center_x_offset:x_midpoint+center_x_offset]
 
             cv2.imwrite("./debug_img.png",marked_img)
             corner_points = []

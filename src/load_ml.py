@@ -2,7 +2,7 @@
 import numpy as np
 import os
 import constants
-if not constants.CREATE_BIN:
+if constants.GEN_BIN:
     import c_interfacing_utils
 
 # mapping labels to actual character
