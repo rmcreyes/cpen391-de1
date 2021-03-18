@@ -83,9 +83,9 @@ def take_photo():
 
         # Capture the video frame 
         ret, frame = vid.read() 
-        
-        resize_width = int(constants.RESIZE_SIZE[1]/frame.shape[0]*frame.shape[1])
-        constants.RESIZE_SIZE = (resize_width, constants.RESIZE_SIZE[1])
+        if (frame is not None):
+            resize_width = int(constants.RESIZE_SIZE[1]/frame.shape[0]*frame.shape[1])
+            constants.RESIZE_SIZE = (resize_width, constants.RESIZE_SIZE[1])
 
         corner_points, marked_img, should_skew = find_plate(frame)
 
