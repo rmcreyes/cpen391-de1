@@ -82,9 +82,9 @@ def take_photo():
         ret, frame = vid.read() 
         
         # capture 480 by 640 photo for consistency 
-        if (frame.shape[0] > 480  or frame.shape[1] > 640):
-            center_y_offset = 640/2
-            center_x_offset = 480/2
+        if (frame is not None and (frame.shape[0] > constants.FRAME_SIZE[1]  or frame.shape[1] > constants.FRAME_SIZE[0])):
+            center_x_offset = int(constants.FRAME_SIZE[0]/2)
+            center_y_offset = int(constants.FRAME_SIZE[1]/2)
             y_midpoint = int(frame.shape[0]/2)
             x_midpoint = int(frame.shape[1]/2)
             frame = frame[y_midpoint-center_y_offset:y_midpoint+center_y_offset,x_midpoint-center_x_offset:x_midpoint+center_x_offset]

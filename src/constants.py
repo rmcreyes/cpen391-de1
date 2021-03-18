@@ -4,7 +4,7 @@ CREATE_BIN = False
 DEBUG = True # when true, intermittent photos will pop up with letter extraction progress
 PROMPT_CHECKER = False # whether or not to compare result to given value ahead of time
 GEN_PHOTOS = False # whether to always generate letters extracted in output/*
-SHOW_CAM_FRAMES = False # whether or not to show camera frames when detecting
+SHOW_CAM_FRAMES = True # whether or not to show camera frames when detecting
 SAVE_DEBUG = False # whether to save demo photos
 SAVE_ORIGINALS = True
 
@@ -14,6 +14,7 @@ PHOTO_INTERVAL = 5 # number of seconds between shots
 # sizes for resized photos 
 RESIZE_SIZE = (600,400)
 STRAIGHTENED_SIZE = (600,300)
+FRAME_SIZE = (640,480)
 
 # auto-picture constants
 FRAME_COUNT_BETWEEN_DIFFERENCE_SNAPSHOTS = 5
