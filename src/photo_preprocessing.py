@@ -81,20 +81,20 @@ def take_photo():
         # Capture the video frame 
         ret, frame = vid.read() 
         
-        # capture 480 by 640 photo for consistency 
-        if (frame is not None and (frame.shape[0] > constants.FRAME_SIZE[1]  or frame.shape[1] > constants.FRAME_SIZE[0])):
-            center_x_offset = int(constants.FRAME_SIZE[0]/2)
-            center_y_offset = int(constants.FRAME_SIZE[1]/2)
-            y_midpoint = int(frame.shape[0]/2)
-            x_midpoint = int(frame.shape[1]/2)
-            frame = frame[y_midpoint-center_y_offset:y_midpoint+center_y_offset,x_midpoint-center_x_offset:x_midpoint+center_x_offset]
 
-        cv2.imwrite("./debug_img.png",frame)
 
         corner_points, marked_img, should_skew = find_plate(frame)
 
         if (marked_img is None):
-            marked_img = cv2.resize(frame, constants.RESIZE_SIZE )
+            marked_img = cv2.resize(frame, constants.RESIZE_SIZE )        # capture 480 by 640 photo for consistency 
+            if (frame is not None and (frame.shape[0] > constants.FRAME_SIZE[1]  or frame.shape[1] > constants.FRAME_SIZE[0])):
+                center_x_offset = int(constants.FRAME_SIZE[0]/2)
+                center_y_offset = int(constants.FRAME_SIZE[1]/2)
+                y_midpoint = int(frame.shape[0]/2)
+                x_midpoint = int(frame.shape[1]/2)
+                frame = frame[y_midpoint-center_y_offset:y_midpoint+center_y_offset,x_midpoint-center_x_offset:x_midpoint+center_x_offset]
+
+            cv2.imwrite("./debug_img.png",frame)
             corner_points = []
 
             consec_detect = 0
