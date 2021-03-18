@@ -23,9 +23,6 @@ if not constants.CREATE_BIN:
 # returns:
 # > the detected plate number, empty if no plate detected
 def perform_read(corners,img,should_skew, should_be):
-    resize_width = int(constants.RESIZE_SIZE[1]/img.shape[0]*img.shape[1])
-    constants.RESIZE_SIZE = (resize_width, constants.RESIZE_SIZE[1])
-    print(resize_width)
     img = cv2.resize(img, constants.RESIZE_SIZE )
     if (should_skew):
         dst = photo_preprocessing.straighten_crop(corners, img)
