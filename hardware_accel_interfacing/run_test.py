@@ -1,6 +1,6 @@
 import load_nn_to_c
 import argparse
-
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file")
@@ -12,6 +12,6 @@ if args.file is None:
 
 load_nn_to_c.load_c_nn()
 
-bin_arr = np.fromfile('args.file', dtype='int32')
+bin_arr = np.fromfile(args.file, dtype='int32')
 
 print(load_nn_to_c.run_c_nn(bin_arr))

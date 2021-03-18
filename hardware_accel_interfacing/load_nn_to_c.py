@@ -39,4 +39,4 @@ def run_c_nn(bin_arr):
     x.run.argtype = POINTER(c_int)
     x.run.restype = c_int
 
-    return x.run(predict_map[p])
+    return predict_map[x.run(p)]
