@@ -87,14 +87,14 @@ def take_photo():
 
         if (marked_img is None):
             marked_img = cv2.resize(frame, constants.RESIZE_SIZE )        # capture 480 by 640 photo for consistency 
-            if (frame is not None and (frame.shape[0] > constants.FRAME_SIZE[1]  or frame.shape[1] > constants.FRAME_SIZE[0])):
+            if (marked_img is not None and (marked_img.shape[0] > constants.FRAME_SIZE[1]  or marked_img.shape[1] > constants.FRAME_SIZE[0])):
                 center_x_offset = int(constants.FRAME_SIZE[0]/2)
                 center_y_offset = int(constants.FRAME_SIZE[1]/2)
-                y_midpoint = int(frame.shape[0]/2)
-                x_midpoint = int(frame.shape[1]/2)
-                frame = frame[y_midpoint-center_y_offset:y_midpoint+center_y_offset,x_midpoint-center_x_offset:x_midpoint+center_x_offset]
+                y_midpoint = int(marked_img.shape[0]/2)
+                x_midpoint = int(marked_img.shape[1]/2)
+                marked_img = marked_img[y_midpoint-center_y_offset:y_midpoint+center_y_offset,x_midpoint-center_x_offset:x_midpoint+center_x_offset]
 
-            cv2.imwrite("./debug_img.png",frame)
+            cv2.imwrite("./debug_img.png",marked_img)
             corner_points = []
 
             consec_detect = 0
