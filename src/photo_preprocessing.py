@@ -52,7 +52,7 @@ def take_photo():
 
     print("getting ready to take photo...")
     # define a video capture object 
-    vid = cv2.VideoCapture(constants.USE_WEBCAM_NUMBER,cv2.CAP_DSHOW) 
+    vid = cv2.VideoCapture(constants.USE_WEBCAM_NUMBER) 
 
     vid.set(cv2.CAP_PROP_FRAME_WIDTH, int(640))
     vid.set(cv2.CAP_PROP_FRAME_HEIGHT, int(480))
@@ -83,9 +83,11 @@ def take_photo():
 
         # Capture the video frame 
         ret, frame = vid.read() 
-        if (frame is not None):
-            resize_width = int(constants.RESIZE_SIZE[1]/frame.shape[0]*frame.shape[1])
-            constants.RESIZE_SIZE = (resize_width, constants.RESIZE_SIZE[1])
+        if (frame is None):
+             print("here")
+             continue 
+        resize_width = int(constants.RESIZE_SIZE[1]/frame.shape[0]*frame.shape[1])
+        constants.RESIZE_SIZE = (resize_width, constants.RESIZE_SIZE[1])
 
         corner_points, marked_img, should_skew = find_plate(frame)
 
