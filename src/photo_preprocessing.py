@@ -3,6 +3,7 @@ import constants
 import imutils
 import math
 import numpy as np
+import camera_config
 
 # Given an array of corner co-ordinates, return the indices or the top (index = 0) or right (index = 1) corners
 # args:
@@ -52,7 +53,11 @@ def take_photo():
 
     print("getting ready to take photo...")
     # define a video capture object 
-    vid = cv2.VideoCapture(constants.USE_WEBCAM_NUMBER) 
+    vid = cv2.VideoCapture(camera_config.USE_WEBCAM_NUMBER) 
+
+    # capture 480p photo for consistency 
+    vid.set(cv2.CAP_PROP_FRAME_WIDTH, int(640))
+    vid.set(cv2.CAP_PROP_FRAME_HEIGHT, int(480))
 
     img = None
     frame = None
@@ -64,11 +69,11 @@ def take_photo():
     consec_detect = 0
     while(True): 
 
-        if frame_num_count > constants.FRAME_COUNT_BETWEEN_DIFFERENCE_SNAPSHOTS:
+        if frame_num_count > camera_config.FRAME_COUNT_BETWEEN_DIFFERENCE_SNAPSHOTS:
             if last_frame is not None:
                 frame_diff = cv2.absdiff(last_frame,frame)
                 print(frame_nums_without_detection)
-                if (frame_diff.sum() < constants.MATRIX_DIFFERENCE_THRESHOLD):
+                if (frame_diff.sum() < camera_config.MATRIX_DIFFERENCE_THRESHOLD):
                     frame_nums_without_detection += 1
                 else:
                     frame_nums_without_detection = 0
@@ -81,13 +86,17 @@ def take_photo():
         # Capture the video frame 
         ret, frame = vid.read() 
 
-        corner_points, marked_img, should_skew = find_plate(frame)
-        if (marked_img is None):
-            marked_img = cv2.resize(frame, constants.RESIZE_SIZE )
-            corner_points = []
+        if (frame is None):
+             continue 
 
+
+        corner_points, marked_img, should_skew = find_plate(frame)
+
+        if (marked_img is None):
+            corner_points = []
             consec_detect = 0
             prev_corners = []
+            marked_img = frame
         else:
             frame_nums_without_detection = 0
             if (consec_detect > 0 ):
@@ -100,7 +109,7 @@ def take_photo():
                     consec_detect+=1
                     prev_corners = corner_points
 
-                    if (constants.SAME_CORNERS_DETECTED_THRESHOLD == 3):
+                    if (camera_config.SAME_CORNERS_DETECTED_THRESHOLD == 3):
                         break
                 else:
                     consec_detect = 0
@@ -110,11 +119,11 @@ def take_photo():
                 prev_corners = corner_points
                 
 
-        if (frame_nums_without_detection > constants.NUM_LOW_DIFFERENCE_FRAME_COUNT_THRESHOLD):
+        if (frame_nums_without_detection > camera_config.NUM_LOW_DIFFERENCE_FRAME_COUNT_THRESHOLD):
             break
 
         # show image with markings in where it found the rectangle
-        if constants.SHOW_CAM_FRAMES:
+        if camera_config.SHOW_CAM_FRAMES:
             cv2.imshow('frame', marked_img) 
             
         # press q to quit
@@ -224,15 +233,21 @@ def straighten_crop(new_corners, img):
 def find_plate(img):
     # identify where the plate is in the photo and return the marked img and cropped img
     # initial transforming
-    img = cv2.resize(img, constants.RESIZE_SIZE  )
     corners = []
     proportions_changed = False
+
+
+    if not camera_config.FIND_EDGES:
+        return corners, None, proportions_changed
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
     gray = cv2.bilateralFilter(gray, 13, 15, 15) 
 
     edged = cv2.Canny(gray, 20, 200) 
 
+    if constants.SAVE_DEBUG:
+        cv2.imwrite("canny_after.png",edged)
+        cv2.imwrite("canny_before.png",img)
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(2,2))
     dilated = cv2.dilate(edged, kernel)
@@ -248,8 +263,8 @@ def find_plate(img):
 
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.018 * peri, True)
-        if (cv2.contourArea(c) < constants.RESIZE_SIZE[0]*constants.RESIZE_SIZE[1]/4):
-            break #frame should take at least a quarter of the screen
+        if (cv2.contourArea(c) < img.shape[1]*img.shape[0]/4):
+            break # frame should take at least a quarter of the screen
 
         if len(approx) == 4:
             # re-skew array so that the image is a perfect rectangle

@@ -7,3 +7,8 @@ log*
 TEST \-*
 __pycache__/
 .vscode/
+archive
+demo
+custom_data
+intermediate_photos/
+hardware_accel_interfacing/
