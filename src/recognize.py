@@ -56,18 +56,22 @@ def perform_read(corners,img,should_skew, should_be):
         if constants.GEN_BIN:
             load_ml.create_bin(recog_imgs)
         else:
-            plate_num = load_ml.recog_images(recog_imgs)
-            
-            should_be = should_be.replace(" ", "")
-            if len(should_be) > 0:
-                for i in range(len(plate_num)):
-                    try:
-                        if should_be[i] != plate_num[i]:
-                            cv2.imwrite(f"./output/{should_be[i]}_{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
-                    except IndexError:
-                        cv2.imwrite(f"./output/{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
+            plate_num = load_ml_tensorflow.recog_images_tensorflow(recog_imgs)
+        
+        should_be = should_be.replace(" ", "")
+        if len(should_be) > 0:
+            for i in range(len(plate_num)):
+                try:
+                    if should_be[i] != plate_num[i]:
+                        cv2.imwrite(f"./output/{constants.PREDICT_MAP.index(should_be[i])}_{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
+                    elif constants.GEN_EXTRACTED_LETTER_PNG:
+                        cv2.imwrite(f"./output/{constants.PREDICT_MAP.index(should_be[i])}_{plate_num}_auto_{i}.png",recog_imgs[i])
+                except IndexError:
+                    cv2.imwrite(f"./output/{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
+        
 
-            plate_num = platenum_postprocessing.apply_spaces(keys, plate_num)
+        print(constants.GEN_EXTRACTED_LETTER_PNG)
+        plate_num = platenum_postprocessing.apply_spaces(keys, plate_num)
 
                         
 
