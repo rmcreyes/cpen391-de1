@@ -9,10 +9,13 @@ from pathlib import Path
 import constants
 import photo_preprocessing
 import letter_extraction
-import load_ml
 import platenum_postprocessing
-if not constants.CREATE_BIN:
+
+# file imports depend on how we are loading the neural network
+if constants.USE_C:
     import c_interfacing_utils
+else:
+    import load_ml_tensorflow
 
 # Read the plate number from the given image
 # args: 
@@ -22,8 +25,12 @@ if not constants.CREATE_BIN:
 # > if nonempty, contains the actual value for the plate to compare (for debugging)
 # returns:
 # > the detected plate number, empty if no plate detected
-def perform_read(corners,img,should_skew, should_be):
-    img = cv2.resize(img, constants.RESIZE_SIZE )
+def perform_read(corners, img, should_skew, should_be):
+
+    resize_width = int(constants.RESIZE_HEIGHT/img.shape[0]*img.shape[1])
+    resize_size = (resize_width, constants.RESIZE_HEIGHT)
+    img = cv2.resize(img, resize_size)
+
     if (should_skew):
         dst = photo_preprocessing.straighten_crop(corners, img)
     else:
@@ -32,7 +39,6 @@ def perform_read(corners,img,should_skew, should_be):
     if constants.SAVE_DEBUG or constants.SAVE_ORIGINALS:
         now = datetime.now()
         newfilename = f"./intermediate_photos/{datetime.today().strftime('%Y-%m-%d_%H%M%S')}.png"
-        print(newfilename)
         cv2.imwrite(newfilename,dst)
 
     if constants.DEBUG:
@@ -61,10 +67,10 @@ def perform_read(corners,img,should_skew, should_be):
             recog_imgs.append(images[key])
 
         # either generate the bin files to perform low-level ML or use python ML to get answer
-        if constants.GEN_BIN:
-            plate_num = load_ml.recog_images_c(recog_imgs)
+        if constants.USE_C:
+            plate_num = c_interfacing_utils.recog_images_c(recog_imgs)
         else:
-            plate_num = load_ml.recog_images_tensorflow(recog_imgs)
+            plate_num = load_ml_tensorflow.recog_images_tensorflow(recog_imgs)
         
         should_be = should_be.replace(" ", "")
         if len(should_be) > 0:
@@ -84,10 +90,10 @@ def perform_read(corners,img,should_skew, should_be):
 
         return plate_num
 
-# Perform a read from the camera every <PHOTO_INTERVAL> seconds and writes results to a file called "<OUTPUT_FILENAME> <DATE>"
+# Perform a read from the camera every <PHOTO_INTERVAL> seconds and writes results to a file called "<OUTPUT_FILENAME_PREFIX> <DATE>"
 def perform_reading_loop():
 
-    filename = f"{constants.OUTPUT_FILENAME} {datetime.today().strftime('%Y-%m-%d')}.txt"
+    filename = f"{constants.OUTPUT_FILENAME_PREFIX} {datetime.today().strftime('%Y-%m-%d')}.txt"
     with open(filename, "w") as f:
         f.write("START:\n")
         
@@ -130,8 +136,7 @@ def perform_reading_singular(file):
     return perform_read(corners,img,should_skew,plate_name)
 
 if __name__ == "__main__":
-    
-    if constants.GEN_BIN and not constants.CREATE_BIN:
+    if constants.USE_C:
         c_interfacing_utils.load_c_nn()
 
     parser = argparse.ArgumentParser()

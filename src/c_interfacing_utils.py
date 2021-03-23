@@ -2,16 +2,33 @@ import numpy as np
 from ctypes import *
 import constants
 
-in_size = 784
-l1_size = 1000
-l2_size = 750
-l3_size = 36
+if constants.USE_C:
+    x = CDLL(constants.SO_FILE)
 
-if constants.GEN_BIN:
-    x = CDLL('./src/compiled_c/libnn.so')
+# convert the openCV images to binary arrays and loads them into the custom NN
+# args:
+# > the openCV images of the cropped characters
+# returns:
+# > the string recognized (no spaces)
+def recog_images_c(images):
+    final_str = ""
+    for i,img in enumerate(images):
+        mod_img = img.flatten()
+        mod_img = mod_img/255.0
 
+        # images must be multiplied by 2^16, as needed by lower level process Q16.16 floating point
+        mod_img = np.array(mod_img*65536.0,dtype="int32")
+        if constants.CREATE_BIN:
+            mod_img.tofile(f"output/custom_char_{i}.bin")
+
+        most_probable_elem_index = c_interfacing_utils.run_c_nn(mod_img)
+        final_str += constants.PREDICT_MAP[most_probable_elem_index]
+
+    return final_str
+
+# loads nn into custom neural network written in C.
 def load_c_nn():
-    bin_arr = np.fromfile('models/model_hl_1000_750_generated_nn.bin', dtype='int32')
+    bin_arr = np.fromfile(constants.NN_BIN, dtype='int32')
 
     num_elems = len(bin_arr)
 
@@ -23,9 +40,13 @@ def load_c_nn():
     x.init_accel.argtype = POINTER(c_int),c_int,c_int,c_int,c_int
     x.init_accel.restype = c_int
 
-    x.init_accel(p,in_size,l1_size,l2_size,l3_size)
+    x.init_accel(p,IN_SIZE,L1_SIZE,L2_SIZE,L3_SIZE)
 
-
+# Runs the hardware-accelerated neural network on the resultant bin file
+# args:
+# > binary array representing the photo
+# returns:
+# > the index of the character identified
 def run_c_nn(bin_arr):
     p = (c_int*len(bin_arr))()
 

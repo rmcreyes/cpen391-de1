@@ -11,7 +11,7 @@ predict_map = ['0','1','2','3','4','5',
             'I','J','K','L','M','N',
             'O','P','Q','R','S','T',
             'U','V','W', 'X','Y','Z']
-# if constants.GEN_BIN:
+# if constants.USE_C:
 x = CDLL('../src/compiled_c/libnn.so')
 
 def load_c_nn():
