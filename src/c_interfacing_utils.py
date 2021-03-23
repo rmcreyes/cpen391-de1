@@ -21,7 +21,7 @@ def recog_images_c(images):
         if constants.CREATE_BIN:
             mod_img.tofile(f"output/custom_char_{i}.bin")
 
-        most_probable_elem_index = c_interfacing_utils.run_c_nn(mod_img)
+        most_probable_elem_index = run_c_nn(mod_img)
         final_str += constants.PREDICT_MAP[most_probable_elem_index]
 
     return final_str
