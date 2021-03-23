@@ -2,6 +2,7 @@ import cv2
 import constants
 import numpy as np
 import imutils
+import datetime
 
 # Make an extracted letter formatted well for the ML analysis
 # args:
@@ -40,14 +41,27 @@ def remove_furthest(x, y, h, yhat):
 # > results dict, has yhat array and error sum of squares
 def linear_fit(x, y):
     results = {}
+    y = [abs(a - 400) for a in y]
     coeffs = np.polyfit(x, y, 1)
     p = np.poly1d(coeffs)
 
     yhat = p(x)
     results['yhat'] = yhat # expected values
-
     ybar = np.sum(y)/len(y)     
-    sse = np.sum((y-ybar)**2)   
+
+    if constants.SAVE_DEBUG:
+        
+        import matplotlib.pyplot as plt 
+        e = (y-yhat)
+        fig = plt.figure()
+        plt.errorbar(x, y, yerr=e, fmt='o', linewidth=0.5)
+        plt.plot(x,p(x)) 
+        plt.xlim([0, 600])
+        plt.ylim([0, 400])
+        fig.savefig(f'temp_{len(x)}.png', dpi=fig.dpi)
+
+
+    sse = np.sum((y-yhat)**2)   
     results['sse'] = sse  # error sum of squares
 
     return results    
@@ -60,11 +74,14 @@ def linear_fit(x, y):
 # > new filtered dict mapping leftmosdt x-coordinate of character to image of character with no/less outliers
 def remove_outliers(images, x_pts, y_pts, h_pts):
 
+    final_images = {}
+    if len(x_pts) == 0:
+        return final_images
     # use error of sum of squares to ensure that letters follow linear pattern
     polyfit_obj = linear_fit(x_pts, y_pts)
     sse = abs(polyfit_obj["sse"])**0.5
 
-    while sse > 50:
+    while sse > 35:
         yhat = polyfit_obj["yhat"]
         x_pts, y_pts,h_pts = remove_furthest(x_pts, y_pts, h_pts, yhat)
         polyfit_obj = linear_fit(x_pts, y_pts)
@@ -73,10 +90,9 @@ def remove_outliers(images, x_pts, y_pts, h_pts):
     # remove outliers from heights
     indices_to_remove = set()
     for i, h in enumerate(h_pts):
-        if abs(h_pts[i] - np.mean(h_pts)) > 2*np.std(h_pts):
+        if abs(h_pts[i] - np.mean(h_pts)) > 2.25*np.std(h_pts):
             indices_to_remove.add(i)
 
-    final_images = {}
     for i,x in enumerate(x_pts):
         if (not i in indices_to_remove):
             final_images[x] = images[x]
@@ -124,6 +140,8 @@ def crop_letters(img):
 
     collected_rectangles = []
     images = {}
+    y_vals = {}
+
     full_img_height = img.shape[0]
     full_img_width = img.shape[1]
     x_pts = []
@@ -158,7 +176,7 @@ def crop_letters(img):
             x_pts.append(x_midpoint)
             h_pts.append(h)
 
-            img = cv2.circle(img, (x_midpoint,y_midpoint), radius=0, color=(0, 0, 255), thickness=-1)
+            img = cv2.circle(img, (x_midpoint,y_midpoint), radius=0, color=(0, 0, 255), thickness=4)
             collected_rectangles.append([(x_min, y_min), (x_max, y_max)])
             
             if constants.DEBUG:
@@ -168,13 +186,15 @@ def crop_letters(img):
             cropped_img = process_letter(cropped_img)
 
             images[x_midpoint] = cropped_img
-
-            if constants.GEN_PHOTOS:
+            y_vals[x_midpoint] = y_midpoint
+            if constants.GEN_EXTRACTED_LETTER_PNG:
                 cv2.imwrite(f"./output/elem_{x}.png",cropped_img)
                 
     final_images = remove_outliers(images, x_pts, y_pts, h_pts)
 
     for k in final_images.keys():
-        img = cv2.circle(img, (k,200), radius=0, color=(0, 255, 0), thickness=5)
+        img = cv2.circle(img, (k,y_vals[k]), radius=0, color=(0, 255, 0), thickness=5)
+        if constants.SAVE_DEBUG:
+            cv2.imwrite("./debug_img.png",img)
 
     return final_images

@@ -9,8 +9,13 @@ from pathlib import Path
 import constants
 import photo_preprocessing
 import letter_extraction
-import load_ml
 import platenum_postprocessing
+
+# file imports depend on how we are loading the neural network
+if constants.USE_C:
+    import c_interfacing_utils
+else:
+    import load_ml_tensorflow
 
 # Read the plate number from the given image
 # args: 
@@ -20,16 +25,26 @@ import platenum_postprocessing
 # > if nonempty, contains the actual value for the plate to compare (for debugging)
 # returns:
 # > the detected plate number, empty if no plate detected
-def perform_read(corners,img,should_skew, should_be):
-    img = cv2.resize(img, constants.RESIZE_SIZE )
+def perform_read(corners, img, should_skew, should_be):
+
+    resize_width = int(constants.RESIZE_HEIGHT/img.shape[0]*img.shape[1])
+    resize_size = (resize_width, constants.RESIZE_HEIGHT)
+    img = cv2.resize(img, resize_size)
+
     if (should_skew):
         dst = photo_preprocessing.straighten_crop(corners, img)
     else:
         dst= img
 
+    if constants.SAVE_DEBUG or constants.SAVE_ORIGINALS:
+        now = datetime.now()
+        newfilename = f"./intermediate_photos/{datetime.today().strftime('%Y-%m-%d_%H%M%S')}.png"
+        cv2.imwrite(newfilename,dst)
+
     if constants.DEBUG:
         cv2.imshow('image',dst)
         cv2.waitKey(0)
+
 
     # crop letters out of photo
     images = letter_extraction.crop_letters(dst)
@@ -43,7 +58,6 @@ def perform_read(corners,img,should_skew, should_be):
     keys = sorted(images.keys(), reverse=False)
 
     if (len(keys) <= 2):
-        print(f"only {len(keys)} elements found... not supported")
         print(f"NOTHING PARKED - {datetime.now().time()}")
         return ""
     else:
@@ -51,41 +65,41 @@ def perform_read(corners,img,should_skew, should_be):
         recog_imgs = []
         for key in keys:
             recog_imgs.append(images[key])
-        plate_num = "000 000"
+
         # either generate the bin files to perform low-level ML or use python ML to get answer
-        if constants.GEN_BIN:
-            load_ml.create_bin(recog_imgs)
+        if constants.USE_C:
+            plate_num = c_interfacing_utils.recog_images_c(recog_imgs)
         else:
-            plate_num = load_ml.recog_images(recog_imgs)
-            
-            should_be = should_be.replace(" ", "")
-            if len(should_be) > 0:
-                for i in range(len(plate_num)):
-                    try:
-                        if should_be[i] != plate_num[i]:
-                            cv2.imwrite(f"./output/{should_be[i]}_{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
-                    except IndexError:
-                        cv2.imwrite(f"./output/{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
+            plate_num = load_ml_tensorflow.recog_images_tensorflow(recog_imgs)
+        
+        should_be = should_be.replace(" ", "")
+        if len(should_be) > 0:
+            for i in range(len(plate_num)):
+                try:
+                    if should_be[i] != plate_num[i]:
+                        cv2.imwrite(f"./output/{should_be[i]}_{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
+                except IndexError:
+                    cv2.imwrite(f"./output/{plate_num}_{i}_{plate_num[i]}.png",recog_imgs[i])
 
-            plate_num = platenum_postprocessing.apply_spaces(keys, plate_num)
+        plate_num = platenum_postprocessing.apply_spaces(keys, plate_num)
 
-                        
+                    
 
-            print(f"\n\n\'{plate_num}\' PARKED - {datetime.now().time()}")
+        print(f"\n\n\'{plate_num}\' PARKED - {datetime.now().time()}")
 
 
         return plate_num
 
-# Perform a read from the camera every <PHOTO_INTERVAL> seconds and writes results to a file called "<OUTPUT_FILENAME> <DATE>"
+# Perform a read from the camera every <PHOTO_INTERVAL> seconds and writes results to a file called "<OUTPUT_FILENAME_PREFIX> <DATE>"
 def perform_reading_loop():
 
-    filename = f"{constants.OUTPUT_FILENAME} {datetime.today().strftime('%Y-%m-%d')}.txt"
+    filename = f"{constants.OUTPUT_FILENAME_PREFIX} {datetime.today().strftime('%Y-%m-%d')}.txt"
     with open(filename, "w") as f:
         f.write("START:\n")
         
     should_be = ""
     if constants.PROMPT_CHECKER:
-        should_be = input("what is the plate number of what you're about to scan?")
+        should_be = input("what is the plate number of what you're about to scan?\n> ")
 
     while True:
         img = None
@@ -122,6 +136,9 @@ def perform_reading_singular(file):
     return perform_read(corners,img,should_skew,plate_name)
 
 if __name__ == "__main__":
+    if constants.USE_C:
+        c_interfacing_utils.load_c_nn()
+
     parser = argparse.ArgumentParser()
     parser.add_argument("file", nargs='?', const="")
     args = parser.parse_args()

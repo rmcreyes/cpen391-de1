@@ -13,3 +13,6 @@ To run the code to detect using the camera every few seconds, use:
 
 If you have a pre-taken photo for detection, use:
 - `python recognize.py <path/to/file>`
+
+NOTE: the `sudo` keywork is needed in Linux if using the hardware-accelerated neural network (if `constants.USE_C == True`)
+
