@@ -9,10 +9,10 @@ Run the following commands to install needed packages:
     - `pip install -r requirements/requirements_for_tensorflow.txt` 
 
 To run the code to detect using the camera every few seconds, use:
-- `python recognize.py` on Windows or
-- `sudo python recognize.py` on Ubuntu 
+- `python recognize.py`
 
 If you have a pre-taken photo for detection, use:
-- `python recognize.py <path/to/file>` on Windows or
-- `sudo python recognize.py <path/to/file>` on Ubuntu 
+- `python recognize.py <path/to/file>`
+
+NOTE: the `sudo` keywork is needed in Linux if using the hardware-accelerated neural network (if `constants.USE_C == True`)
 
