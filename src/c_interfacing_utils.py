@@ -40,7 +40,7 @@ def load_c_nn():
     x.init_accel.argtype = POINTER(c_int),c_int,c_int,c_int,c_int
     x.init_accel.restype = c_int
 
-    x.init_accel(p,IN_SIZE,L1_SIZE,L2_SIZE,L3_SIZE)
+    x.init_accel(p, constants.IN_SIZE, constants.L1_SIZE, constants.L2_SIZE, constants.L3_SIZE)
 
 # Runs the hardware-accelerated neural network on the resultant bin file
 # args:
