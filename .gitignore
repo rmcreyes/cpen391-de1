@@ -12,3 +12,6 @@ demo
 custom_data
 intermediate_photos/
 hardware_accel_interfacing/
+./debug_tools/custom_data/test
+./debug_tools/custom_data/train
+.idea*

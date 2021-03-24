@@ -1,6 +1,6 @@
 # the following constants may be machine-dependent
 
-USE_WEBCAM_NUMBER = 1 # starts at 0, set to 0 if you only have one webcam connected; I'm just using my secondary webcam
+USE_WEBCAM_NUMBER = 0 # starts at 0, set to 0 if you only have one webcam connected; I'm just using my secondary webcam
 
 # auto-picture constants
 FRAME_COUNT_BETWEEN_DIFFERENCE_SNAPSHOTS = 5
