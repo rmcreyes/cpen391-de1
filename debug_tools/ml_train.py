@@ -39,8 +39,8 @@ extra_test_images, extra_test_labels = get_from_files("custom_data/test")
 train_images_total, train_labels_total = emnist.extract_training_samples('byclass')
 test_images_total, test_labels_total = emnist.extract_test_samples('byclass')
 
-train_images_total, train_labels_total = remove(35, train_images_total, train_labels_total)
-test_images_total, test_labels_total = remove(35, test_images_total[0:10000], test_labels_total[0:10000])
+train_images_total, train_labels_total = remove(35, train_images_total[0:400000], train_labels_total[0:400000])
+test_images_total, test_labels_total = remove(35, test_images_total[0:1000], test_labels_total[0:1000])
 
 test_images_total = test_images_total[0:300]
 test_labels_total = test_labels_total[0:300]
@@ -57,13 +57,13 @@ test_images = flat(test_images_total)
 
 model = keras.Sequential([
 	keras.layers.Dense(1000, activation="relu"),
-	keras.layers.Dense(750, activation="relu"),
+	keras.layers.Dense(1000, activation="relu"),
 	keras.layers.Dense(36, activation="softmax")
 	])
 
 model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 
-model.fit(train_images, train_labels_total, epochs=15)
+model.fit(train_images, train_labels_total, epochs=10)
 
 test_loss, test_acc = model.evaluate(test_images, test_labels_total)
 

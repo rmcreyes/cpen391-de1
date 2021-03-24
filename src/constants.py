@@ -24,7 +24,7 @@ L2_SIZE = 750
 L3_SIZE = 36
 
 NN_BIN = 'models/model_hl_1000_750_generated_nn.bin' # neural network weights and biases (bin format)
-NN_H5 = "debug_tools/letterrecog1000_750.h5" # neural network weights and biases (h5 format)
+NN_H5 = "models/letterrecog1000_750.h5" # neural network weights and biases (h5 format)
 SO_FILE = "./src/compiled_c/libnn.so"
 
 # mapping labels to actual character
