@@ -57,7 +57,7 @@ test_images = flat(test_images_total)
 
 model = keras.Sequential([
 	keras.layers.Dense(1000, activation="relu"),
-	keras.layers.Dense(1000, activation="relu"),
+	keras.layers.Dense(750, activation="relu"),
 	keras.layers.Dense(36, activation="softmax")
 	])
 
