@@ -53,7 +53,7 @@ def take_photo():
 
     print("getting ready to take photo...")
     # define a video capture object 
-    vid = cv2.VideoCapture(camera_config.USE_WEBCAM_NUMBER) 
+    vid = cv2.VideoCapture(camera_config.USE_WEBCAM_NUMBER, cv2.CAP_V4L2) 
 
     # capture 480p photo for consistency 
     vid.set(cv2.CAP_PROP_FRAME_WIDTH, int(640))

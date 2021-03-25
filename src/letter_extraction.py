@@ -187,8 +187,6 @@ def crop_letters(img):
 
             images[x_midpoint] = cropped_img
             y_vals[x_midpoint] = y_midpoint
-            if constants.GEN_EXTRACTED_LETTER_PNG:
-                cv2.imwrite(f"./output/elem_{x}.png",cropped_img)
                 
     final_images = remove_outliers(images, x_pts, y_pts, h_pts)
 

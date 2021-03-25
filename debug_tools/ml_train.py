@@ -39,8 +39,12 @@ extra_test_images, extra_test_labels = get_from_files("custom_data/test")
 train_images_total, train_labels_total = emnist.extract_training_samples('byclass')
 test_images_total, test_labels_total = emnist.extract_test_samples('byclass')
 
-train_images_total, train_labels_total = remove(35, train_images_total, train_labels_total)
-test_images_total, test_labels_total = remove(35, test_images_total, test_labels_total)
+train_images_total, train_labels_total = remove(35, train_images_total[0:400000], train_labels_total[0:400000])
+test_images_total, test_labels_total = remove(35, test_images_total[0:1000], test_labels_total[0:1000])
+
+test_images_total = test_images_total[0:300]
+test_labels_total = test_labels_total[0:300]
+
 
 train_images_total = np.concatenate((train_images_total,extra_train_images))
 train_labels_total =np.concatenate((train_labels_total,extra_train_labels))
