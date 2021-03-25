@@ -12,5 +12,5 @@ demo
 intermediate_photos/
 hardware_accel_interfacing/
 .idea*
-./debug_tools/custom_data/test/
-./debug_tools/custom_data/train/
+debug_tools/custom_data/test/
+debug_tools/custom_data/train/
