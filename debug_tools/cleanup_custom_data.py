@@ -1,6 +1,10 @@
 import os
 import argparse
 
+# this takes all elements in a select folder and organizes 
+# them to have consistent names (with current names as {char_index}_{any_string})
+# used on custom_data/test and custom_data/train
+
 parser = argparse.ArgumentParser()
 parser.add_argument("file", nargs='?', const="")
 args = parser.parse_args()
