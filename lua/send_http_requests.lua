@@ -1,6 +1,6 @@
 -- Access point to connect to for sending HTTP requests
 SSID = "REYES NETWORK"
-SSID_PASSWORD = "********"
+SSID_PASSWORD = "******"
 
 HOST = "backend391.herokuapp.com"
 
@@ -53,14 +53,35 @@ function build_put_request(endpoint, body_table)
     return request
 end
 
--- A callback function that prints the response of an HTTP request when received
-function display_response(sck, response)
-    print("Response:")
-    print(response)
+-- Given a repsonse from the backend, attempt to parse and return the json body as a table
+function get_json_body(response)
+    if (DEBUG) then
+        print("Full response:")
+        print(response)
+    end
+
+    find_result = string.find(response, "{.*}")
+    if (find_result == nil) then
+        return nil
+    else
+        i, j = find_result
+        body_str = string.sub(response, i+1, string.len(response)-1)
+        body_table = {}
+        for pair in string.gmatch(body_str, "[^,]+") do
+            find_result = string.find(pair, ":")
+            if (find_result ~= nil) then
+                colon_pos, empty = find_result
+                key = string.sub(pair, 2, colon_pos-2)
+                value = string.sub(pair, colon_pos+1, string.len(response))
+                body_table[key] = value
+            end
+        end
+        return body_table
+    end
 end
 
 -- Given a request, send the request and have the response displayed when it is received
-function send_http_request(request)
+function send_http_request(request, callback)
     ip = wifi.sta.getip()
     if (ip == nil) then
         print("Failed to connect, try again")
@@ -72,7 +93,7 @@ function send_http_request(request)
         end
 
         socket = net.createConnection(net.TCP, 0)
-        socket:on("receive", display_response)
+        socket:on("receive", callback)
         socket:connect(80, HOST)
 
         socket:on("connection", function(sck)
@@ -81,10 +102,24 @@ function send_http_request(request)
     end
 end
 
--- Send a get request to the "/hello" endpoint
-function hello_world()
-    request = build_get_request("/hello")
-    send_http_request(request)
+-- displays the parking id of the created parking session when created
+function handle_notify_license_plate_occupied_response(sck, response)
+    body_table = get_json_body(response)
+    if (body_table == nil) then
+        print("Couldn't find JSON body in response\n")
+    else
+        parking_id = body_table["parkingId"]
+        if (parking_id == nil) then
+            message = body_table["message"]
+            if (message == nil) then
+                print("Unexpeted message body\n")
+            else
+                print(message.."\n")
+            end
+        else
+            print(parking_id.."\n")
+        end
+    end
 end
 
 -- Send a put request that notifies the server that a particular license plate has occupied the parking spot
@@ -97,7 +132,27 @@ function notify_license_plate_occupied(license_plate)
     endpoint = "/api/meter/"..METER_ID
 
     request = build_put_request(endpoint, body_table)
-    send_http_request(request)
+    send_http_request(request, handle_notify_license_plate_occupied_response)
+end
+
+-- Displays "success\n" on successful API call, an error message otherwise
+function handle_notify_license_plate_left_response(sck, response)
+    body_table = get_json_body(response)
+    if (body_table == nil) then
+        print("Couldn't find JSON body in response\n")
+    else
+        cost = body_table["cost"]
+        if (cost == nil) then
+            message = body_table["message"]
+            if (message == nil) then
+                print("Unexpeted message body\n")
+            else
+                print(message.."\n")
+            end
+        else
+            print("success\n")
+        end
+    end
 end
 
 -- Send a put request that notifies the server that a particular license plate has left the parking spot
@@ -110,7 +165,27 @@ function notify_license_plate_left(license_plate)
     endpoint = "/api/meter/"..METER_ID
 
     request = build_put_request(endpoint, body_table)
-    send_http_request(request)
+    send_http_request(request, handle_notify_license_plate_left_response)
+end
+
+-- Handles teh response of the confirm parking API
+function handle_confirm_response(sck, response)
+    body_table = get_json_body(response)
+    if (body_table == nil) then
+        print("Couldn't find JSON body in response\n")
+    else
+        parking_id = body_table["parkingId"]
+        if (parking_id == nil) then
+            message = body_table["message"]
+            if (message == nil) then
+                print("Unexpeted message body\n")
+            else
+                print(message.."\n")
+            end
+        else
+            print("success\n")
+        end
+    end
 end
 
 -- Send a put request that confirms that the license plate we started the session with was correct
@@ -123,7 +198,7 @@ function confirm_parking_correct_license_plate(parking_id, license_plate)
     endpoint = "/api/parking/confirm/"..parking_id
 
     request = build_put_request(endpoint, body_table)
-    send_http_request(request)
+    send_http_request(request, handle_confirm_response)
 end
 
 -- Send a put request that corrects the license plate we started the session with
@@ -136,5 +211,5 @@ function confirm_parking_incorrect_license_plate(parking_id, license_plate)
     endpoint = "/api/parking/confirm/"..parking_id
 
     request = build_put_request(endpoint, body_table)
-    send_http_request(request)
+    send_http_request(request, handle_confirm_response)
 end
