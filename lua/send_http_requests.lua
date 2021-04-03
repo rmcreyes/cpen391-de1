@@ -53,6 +53,34 @@ function build_put_request(endpoint, body_table)
     return request
 end
 
+-- Given an endpoint and a table representing the request's body, build a post request
+function build_post_request(endpoint, body_table)
+    body = "{"
+
+    for param,value in pairs(body_table) do
+        if (body ~= "{") then
+            body = body .. ","
+        end
+        body = body .. "\n\""..param.."\": "..value
+    end
+
+    body = body .. "\n}"
+
+    request = "POST "..endpoint.." HTTP/1.1\r\n"..
+    "Host: "..HOST.."\r\n"..
+    "Connection: close\r\n"..
+    "Content-Type: application/json\r\n"..
+    "Content-Length: "..string.len(body).."\r\n"..
+    "\r\n"..
+    body
+
+    if DEBUG then
+        print(request)
+    end
+
+    return request
+end
+
 -- Given a repsonse from the backend, attempt to parse and return the json body as a table
 function get_json_body(response)
     if (DEBUG) then
@@ -168,7 +196,7 @@ function notify_license_plate_left(license_plate)
     send_http_request(request, handle_notify_license_plate_left_response)
 end
 
--- Handles teh response of the confirm parking API
+-- Handles the response of the confirm parking API
 function handle_confirm_response(sck, response)
     body_table = get_json_body(response)
     if (body_table == nil) then
@@ -212,4 +240,57 @@ function confirm_parking_incorrect_license_plate(parking_id, license_plate)
 
     request = build_put_request(endpoint, body_table)
     send_http_request(request, handle_confirm_response)
+end
+
+-- Displays "success\n" on successful API call, an error message otherwise
+function handle_reset_meter_response(sck, response)
+    body_table = get_json_body(response)
+    if (body_table == nil) then
+        print("Couldn't find JSON body in response\n")
+    else
+        cost = body_table["isOccupied"]
+        if (cost == nil) then
+            message = body_table["message"]
+            if (message == nil) then
+                print("Unexpeted message body\n")
+            else
+                print(message.."\n")
+            end
+        else
+            print("success\n")
+        end
+    end
+end
+
+-- Sends a post request that resets the parking meter
+function reset_meter()
+    body_table = {}
+
+    endpoint = "/api/meter/"..METER_ID.."/reset"
+
+    request = build_post_request(endpoint, body_table)
+    send_http_request(request, handle_reset_meter_response)
+end
+
+-- Handle the response of the payment API, displays success or fail
+function send_payment_info_handler(sck, response)
+    if string.find(response, "true") then
+        print("success\n")
+    else
+        print("fail\n")
+    end
+end
+
+    -- Sends a post request that pays for a guest parking session
+function send_payment_info(parking_id, card_num, exp_date, cvv)
+    body_table = {
+        cardNum = ""..card_num.."",
+        expDate = ""..exp_date.."",
+        cvv = ""..cvv..""
+    }
+
+    endpoint = "/api/payment/guest/"..parking_id
+
+    request = build_post_request(endpoint, body_table)
+    send_http_request(request, send_payment_info_handler)
 end
