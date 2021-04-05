@@ -1,6 +1,5 @@
 # Summary
-Software to run on the DE1-SoC for our CPEN 391 project. This runs on Ubuntu 16.04 on the ARM A9 chip. 
-
+Software to run on the DE1-SoC for our CPEN 391 project.
 # Contents
 | Software Type      | Directory |
 | ----------- | ----------- |
