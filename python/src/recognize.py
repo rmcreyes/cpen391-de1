@@ -13,7 +13,7 @@ import platenum_postprocessing
 
 # file imports depend on how we are loading the neural network
 if constants.USE_C:
-    import c_interfacing_utils
+    import c_nn_interfacing_utils
 else:
     import load_ml_tensorflow
 
