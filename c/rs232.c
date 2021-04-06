@@ -1,4 +1,5 @@
 #include "mapping.h"
+#include "rs232.h"
 #include <stdio.h>
 #include <unistd.h>
 

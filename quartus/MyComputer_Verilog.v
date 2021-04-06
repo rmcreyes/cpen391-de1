@@ -378,8 +378,8 @@ module MyComputer_Verilog (
 				 .GPS_RxData 					(),
 				 .GPS_TxData 					(),
 
-				 .BlueTooth_RxData 			(),
-				 .BlueTooth_TxData 			(),
+				 .BlueTooth_RxData 			(GPIO_1[18]),
+				 .BlueTooth_TxData 			(GPIO_1[19]),
 				 
 				 .TouchScreen_RxData 		(),
 				 .TouchScreen_TxData 		()

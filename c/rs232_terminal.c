@@ -1,10 +1,10 @@
 #include "rs232.h"
+#include <stdio.h>
 
 int main() {
     char input[50];
     char output[50];
     char * i;
-    initMap();
     Init_RS232();
 
     putcharRS232('\r');

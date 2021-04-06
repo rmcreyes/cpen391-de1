@@ -1,4 +1,4 @@
-#include "rs232.h"
+#include "rfs.h"
 #include <unistd.h>
 #include <string.h>
 
@@ -12,6 +12,8 @@ const char * parked_func = "notify_license_plate_occupied(\"";
 const char * left_func = "notify_license_plate_left(\"";
 const char * correct = "confirm_parking_correct_license_plate(\"";
 const char * incorrect = "confirm_parking_incorrect_license_plate(\"";
+const char * reset_str = "reset_meter()";
+const char * send_payment_str = "send_payment_info(\"";
 
 // DO NOT INCLUDE \r\n in your payload.
 void send_str(char * str) {
@@ -76,10 +78,7 @@ char * craft_incorrect(char * id, char * plate){
 
 int initWifi(){
     memset(send_buf, 0, MAX_BUF);
-    int err = Init_RS232();
-    if (err) {
-        return err;
-    }
+    
     putcharRS232('\r');
     putcharRS232('\n');
     putcharRS232('\r');
@@ -108,13 +107,41 @@ int notify(char * plate, char * buf, int bufSize, int parked) {
 }
 
 
-int confirm(char * id, char * plate, char * buf, int bufSize, int correct) {
+int confirm_wifi(char * id, char * plate, char * buf, int bufSize, int correct) {
     int n = 0;
     if (correct)
         craft_correct(id, plate);
     else
         craft_incorrect(id, plate);
 
+    send_str(send_buf);
+    if (buf)
+        n = receiveLine(buf, bufSize);
+    memset(send_buf, 0, MAX_BUF);
+    return n;
+}
+
+int reset_meter(char * buf, int bufSize) {
+    int n;
+    strcat(send_buf, reset_str);
+    send_str(send_buf);
+    if (buf)
+        n= receiveLine(buf, bufSize);
+    memset(send_buf, 0, MAX_BUF);
+    return n;
+}
+
+int send_payment(char * parking_id, char * card_num, char * exp, char * cvv, char * buf, int bufSize) {
+    int n;
+    strcat(send_buf, send_payment_str);
+    strcat(send_buf, parking_id);
+    strcat(send_buf, "\", \"");
+    strcat(send_buf, card_num);
+    strcat(send_buf, "\", \"");
+    strcat(send_buf, exp);
+    strcat(send_buf, "\", \"");
+    strcat(send_buf, cvv);
+    strcat(send_buf, "\")");
     send_str(send_buf);
     if (buf)
         n = receiveLine(buf, bufSize);

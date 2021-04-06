@@ -1,6 +1,6 @@
 -- Access point to connect to for sending HTTP requests
-SSID = "REYES NETWORK"
-SSID_PASSWORD = "******"
+SSID = "LongFu"
+SSID_PASSWORD = "***REMOVED***"
 
 HOST = "backend391.herokuapp.com"
 

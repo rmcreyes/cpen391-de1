@@ -11,6 +11,6 @@
   </columns>
  </systemtable>
  <library expandedCategories="Library,Project" />
- <window width="2560" height="1440" x="0" y="0" />
+ <window width="2560" height="1274" x="0" y="166" />
  <generation synthesis="VERILOG" path="_PROJECT_NAME_" simulation="NONE" />
 </preferences>
