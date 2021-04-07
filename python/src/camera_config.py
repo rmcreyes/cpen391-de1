@@ -11,4 +11,4 @@ SAME_CORNERS_DETECTED_THRESHOLD = 3
 # whether or not to perform edge detection (takes a considerable amount of computing time on DE1)
 FIND_EDGES = False
 
-SHOW_CAM_FRAMES = True # whether or not to show camera frames when detecting
+SHOW_CAM_FRAMES = False # whether or not to show camera frames when detecting

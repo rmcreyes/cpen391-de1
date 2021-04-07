@@ -1,7 +1,7 @@
 OUTPUT_FILENAME_PREFIX = "output/log_"
 PHOTO_INTERVAL = 5 # number of seconds between shots
 
-USE_C = False # when false, the script will use ML model to read plate
+USE_C = True # when false, the script will use ML model to read plate
 
 CREATE_BIN = False # generate a bin file; must also enable USE_C
 GEN_EXTRACTED_LETTER_PNG = False # whether to always generate letters extracted in output/*

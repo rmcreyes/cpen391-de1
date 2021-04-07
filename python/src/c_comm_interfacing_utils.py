@@ -23,9 +23,11 @@ def update_parking_status(plate, parked):
 
     x.notify.restype = c_int
 
+    print("about to call notify..")
     n = x.notify(plate_c, buf, c_int(BUF_SIZE), parked_c)
+    print("done call notify..")
 
-    return buf.value.decode("utf-8")
+    return buf.value.decode("utf-8")[1:-1]
 
 # returns is_user, new_plate, parking_id 
 def confirm_wifi(plate, id, correct):
@@ -49,12 +51,31 @@ def confirm_bluetooth(plate):
     plate_c = plate.encode('utf-8')
     buf = create_string_buffer(BUF_SIZE)
 
+    print("calling confirm_BT")
     x.confirm_BT(plate_c, buf, c_int(BUF_SIZE))
+    print("done calling confirm_BT")
 
-    return buf.value.decode("utf-8")
+    ret = buf.value.decode("utf-8")
+    ret_array = ret.split(",")
+
+    for i in range(len(ret_array)):
+        ret_array[i] = ret_array[i].strip()
+
+    confirm_str = ret_array[1]
+
+    if confirm_str == "TIMEOUT":
+        return False, True, ""
+    else:
+        if confirm_str == "TRUE":
+            print("true here")
+            confirm = True
+        else:
+            confirm = False
+        return confirm, False, ret_array[2]
 
 # returns nothing
 def reset_meter():
+    print("resetting meter...")
     x.argtypes = [c_char_p, c_int]
     x.reset_meter.restype = c_int
 
@@ -110,7 +131,20 @@ def ok_user(plate, isUser):
     x.ok_user(plate_c, buf, c_int(BUF_SIZE), isUser_c)
 
     print("returning ok_user")
-    return buf.value.decode("utf-8")
+
+    ret = buf.value.decode("utf-8")
+    ret_array = ret.split(",")
+
+    for i in range(len(ret_array)):
+        ret_array[i] = ret_array[i].strip()
+
+    print(ret)
+    print(ret_array)
+
+    if ret_array[1] == "TIMEOUT":
+        return "", "", "", True
+
+    return ret_array[1],ret_array[2],ret_array[3], False
 
 
 def ok_leave():
@@ -121,25 +155,34 @@ def ok_leave():
 # - isOccupied
 def new_parked(plate):
 
-    is_user, is_occupied, plate, parking_id = update_parking_status(plate, True)
+    # three attempts
+    for i in range(3):
+        parking_id = update_parking_status(plate, True)
+        if not " " in parking_id:
+            break
+
+    print(parking_id)
+
     confirm, timeout, plate = confirm_bluetooth(plate)
 
     if timeout:
+        print("timed out")
         reset_meter()
-        return False
+        return plate
 
-    is_user, plate, parking_id = confirm_wifi(plate, id, confirm)
-
+    is_user = False
+    # is_user, plate, parking_id = confirm_wifi(plate, parking_id, confirm)
+    confirm_wifi(plate, parking_id, confirm)
     if not is_user:
         card_num, exp, cvv, timeout = ok_user(plate, False) 
         if timeout:
             reset_meter()
-            return False
+            return plate
 
         send_payment(parking_id, card_num, exp, cvv)
 
     ok_done(plate)
-    return True
+    return plate
 
 
 def leave(plate):
