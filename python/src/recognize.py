@@ -93,16 +93,10 @@ def perform_read(corners, img, should_skew, should_be):
 
         return plate_num
 
-def park_sequence(plate_num):
-    new_plate_num = c_comm_interfacing_utils.new_parked(plate_num)
-    platenum_detected_correctly = (new_plate_num == plate_num)
-    return new_plate_num, platenum_detected_correctly
-
 # Perform a read from the camera every <PHOTO_INTERVAL> seconds and writes results to a file called "<OUTPUT_FILENAME_PREFIX> <DATE>"
 def perform_reading_loop():
 
     prev_parked = ""
-    platenum_detected_correctly = False
 
     filename = f"{constants.OUTPUT_FILENAME_PREFIX} {datetime.today().strftime('%Y-%m-%d')}.txt"
     with open(filename, "w") as f:
@@ -137,13 +131,7 @@ def perform_reading_loop():
             elif len(prev_parked) == 0:
                 print("something parked now")
                 if constants.USE_C:
-                    plate_num, platenum_detected_correctly = park_sequence(plate_num)
-
-            elif platenum_detected_correctly:
-                print("something NEW parked")
-                if constants.USE_C:
-                    c_comm_interfacing_utils.leave(prev_parked)
-                    plate_num, platenum_detected_correctly = park_sequence(plate_num)
+                    plate_num = c_comm_interfacing_utils.new_parked(plate_num)
         
         prev_parked = plate_num
         
