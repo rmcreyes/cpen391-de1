@@ -8,11 +8,9 @@ if constants.USE_C:
     x = CDLL(constants.RFS_SO_FILE)
 
 def init_rfs_wifi():
-    x.Init_RS323.restype = c_int
-    x.Init_Wifi.restype = c_int
-
-    x.Init_RS323()
-    x.Init_Wifi()
+    x.Init_RFS()
+    x.initWifi()
+    print(x)
 
 # returns is_occupied, cost 
 def update_parking_status(plate, parked):
@@ -25,7 +23,7 @@ def update_parking_status(plate, parked):
 
     x.notify.restype = c_int
 
-    x.notify(plate_c, buf, c_int(BUF_SIZE), parked_c)
+    n = x.notify(plate_c, buf, c_int(BUF_SIZE), parked_c)
 
     return buf.value.decode("utf-8")
 
@@ -90,8 +88,9 @@ def ok_done(plate):
     plate_c = plate.encode('utf-8')
     buf = create_string_buffer(BUF_SIZE)
 
+    print("about to call..")
     x.ok_done(plate_c, buf, c_int(BUF_SIZE))
-
+    print("returning..")
     return buf.value.decode("utf-8")
 
 # > returns:
@@ -105,10 +104,12 @@ def ok_user(plate, isUser):
 
     plate_c = plate.encode('utf-8')
     buf = create_string_buffer(BUF_SIZE)
-    isUser_c = c_int(int(correct))
+    isUser_c = c_int(int(isUser))
 
+    print("calling ok_user")
     x.ok_user(plate_c, buf, c_int(BUF_SIZE), isUser_c)
 
+    print("returning ok_user")
     return buf.value.decode("utf-8")
 
 
@@ -141,6 +142,7 @@ def new_parked(plate):
     return True
 
 
-def leave():
-    is_occupied, cost = update_parking_status(plate, False)
+def leave(plate):
+    # is_occupied, cost = update_parking_status(plate, False)
+    update_parking_status(plate, False)
     ok_leave()
