@@ -11,23 +11,25 @@ def init_rfs_wifi():
     x.Init_RS323.restype = c_int
     x.Init_Wifi.restype = c_int
 
-    init_rfs = x.Init_RS323()
-    init_wifi = x.Init_Wifi()
-    return init_rfs and init_wifi
+    x.Init_RS323()
+    x.Init_Wifi()
 
-def begin_park(plate):
+# returns is_occupied, cost 
+def update_parking_status(plate, parked):
     x.argtypes = [c_char_p, c_char_p, c_int, c_int]
     x.confirm_wifi.restype = c_int
 
     plate_c = plate.encode('utf-8')
     buf = create_string_buffer(BUF_SIZE)
+    parked_c = c_int(int(parked))
 
     x.notify.restype = c_int
 
-    x.notify(plate_c, buf, c_int(BUF_SIZE), c_int(1))
+    x.notify(plate_c, buf, c_int(BUF_SIZE), parked_c)
 
     return buf.value.decode("utf-8")
 
+# returns is_user, new_plate, parking_id 
 def confirm_wifi(plate, id, correct):
     x.argtypes = [c_char_p, c_char_p, c_char_p, c_int, c_int]
     x.confirm_wifi.restype = c_int
@@ -41,6 +43,7 @@ def confirm_wifi(plate, id, correct):
 
     return buf.value.decode("utf-8")
 
+# returns confirm, timeout, plate
 def confirm_bluetooth(plate):
     x.argtypes = [c_char_p, c_char_p, c_int]
     x.confirm_BT.restype = c_int
@@ -52,6 +55,7 @@ def confirm_bluetooth(plate):
 
     return buf.value.decode("utf-8")
 
+# returns nothing
 def reset_meter():
     x.argtypes = [c_char_p, c_int]
     x.reset_meter.restype = c_int
@@ -62,7 +66,7 @@ def reset_meter():
 
     return buf.value.decode("utf-8")
 
-
+# returns nothing
 def send_payment(parking_id, card_num, exp, cvv):
     x.argtypes = [c_char_p, c_int]
     x.send_payment.restype = c_int
@@ -78,15 +82,65 @@ def send_payment(parking_id, card_num, exp, cvv):
 
     return buf.value.decode("utf-8")
 
+# returns nothing
+def ok_done(plate):
+    x.argtypes = [c_char_p, c_char_p, c_int]
+    x.ok_done.restype = c_int
 
+    plate_c = plate.encode('utf-8')
+    buf = create_string_buffer(BUF_SIZE)
+
+    x.ok_done(plate_c, buf, c_int(BUF_SIZE))
+
+    return buf.value.decode("utf-8")
+
+# > returns:
+# card_num
+# exp
+# cvv
+# timeout
 def ok_user(plate, isUser):
     x.argtypes = [c_char_p, c_char_p, c_int, c_int]
-    x.ok_done.restype = c_int
+    x.ok_user.restype = c_int
 
     plate_c = plate.encode('utf-8')
     buf = create_string_buffer(BUF_SIZE)
     isUser_c = c_int(int(correct))
 
-    x.ok_done(plate_c, buf, c_int(BUF_SIZE), isUser_c)
+    x.ok_user(plate_c, buf, c_int(BUF_SIZE), isUser_c)
 
     return buf.value.decode("utf-8")
+
+
+def ok_leave():
+    x.ok_user.restype = c_int
+    x.ok_leave()
+
+# returns:
+# - isOccupied
+def new_parked(plate):
+
+    is_user, is_occupied, plate, parking_id = update_parking_status(plate, True)
+    confirm, timeout, plate = confirm_bluetooth(plate)
+
+    if timeout:
+        reset_meter()
+        return False
+
+    is_user, plate, parking_id = confirm_wifi(plate, id, confirm)
+
+    if not is_user:
+        card_num, exp, cvv, timeout = ok_user(plate, False) 
+        if timeout:
+            reset_meter()
+            return False
+
+        send_payment(parking_id, card_num, exp, cvv)
+
+    ok_done(plate)
+    return True
+
+
+def leave():
+    is_occupied, cost = update_parking_status(plate, False)
+    ok_leave()
