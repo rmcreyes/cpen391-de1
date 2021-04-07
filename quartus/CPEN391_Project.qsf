@@ -1008,4 +1008,6 @@ set_global_assignment -name VERILOG_FILE MyComputer_Verilog.v
 set_global_assignment -name VERILOG_FILE SerialIODecoder_Verilog.v
 set_global_assignment -name BDF_FILE OnChipSerialIO.bdf
 set_global_assignment -name VERILOG_FILE SerialIODecoder.v
+set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
+set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
