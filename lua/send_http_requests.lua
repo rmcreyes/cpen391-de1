@@ -1,30 +1,3 @@
--- Access point to connect to for sending HTTP requests
-SSID = "REYES NETWORK"
-SSID_PASSWORD = "******"
-
-HOST = "backend391.herokuapp.com"
-
--- Meter ID of the associated parking meter
-METER_ID = "603f24a1258f4a001c5a91ca"
-
--- Debug flag for debug printing
-DEBUG = false
-
-
--- Configure ESP as a station
-wifi.setmode(wifi.STATION)
-wifi.sta.config(SSID,SSID_PASSWORD)
-wifi.sta.autoconnect(1)
-
--- Pause for connection to take place
-tmr.delay(1000000) -- wait 1,000,000 us = 1 second
-
--- This should print 5 if connection was successful
-print(wifi.sta.status())
-
--- Prints the IP given to ESP8266
-print(wifi.sta.getip())
-
 -- Given an endpoint and a table representing the request's body, build a put request
 function build_put_request(endpoint, body_table)
     body = "{"
@@ -211,7 +184,7 @@ function handle_confirm_response(sck, response)
                 print(message.."\n")
             end
         else
-            print("success\n")
+            print(body_table.isUser..","..body_table.licensePlate..","..body_table.parkingID)
         end
     end
 end
@@ -257,7 +230,7 @@ function handle_reset_meter_response(sck, response)
                 print(message.."\n")
             end
         else
-            print("success\n")
+            print(cost)
         end
     end
 end
@@ -294,3 +267,65 @@ function send_payment_info(parking_id, card_num, exp_date, cvv)
     request = build_post_request(endpoint, body_table)
     send_http_request(request, send_payment_info_handler)
 end
+
+
+-- Access point to connect to for sending HTTP requests
+SSID = "LongFu"
+SSID_PASSWORD = "***REMOVED***"
+
+HOST = "backend391.herokuapp.com"
+
+-- Meter ID of the associated parking meter
+METER_ID = "603f24a1258f4a001c5a91ca"
+
+-- Debug flag for debug printing
+DEBUG = false
+
+
+-- Configure ESP as a station
+wifi.setmode(wifi.STATION)
+wifi.sta.config(SSID,SSID_PASSWORD)
+wifi.sta.autoconnect(1)
+
+-- Pause for connection to take place
+tmr.delay(3000000) -- wait 1,000,000 us = 1 second
+
+-- This should print 5 if connection was successful
+print(wifi.sta.status())
+
+-- Prints the IP given to ESP8266
+print(wifi.sta.getip())
+
+uart.on("data", "\n", 
+    function(data)
+        data = data:sub(1, -3)
+        print(data)
+        split = {}
+        i = 1
+        for word in string.gmatch(data, '([^,]+)') do
+            split[word] = word
+            split[i] = word
+            i = i + 1
+        end
+
+        if split.OCCUPIED ~= nil then
+            notify_license_plate_occupied(split[2])
+        elseif split.LEFT ~= nil then
+            notify_license_plate_left(split[2])
+        elseif split.CORRECT ~= nil then
+            confirm_parking_correct_license_plate(split[2],split[3])
+        elseif split.INCORRECT ~= nil then
+            confirm_parking_incorrect_license_plate(split[2],split[3])
+        elseif split.RESET ~= nil then
+            reset_meter()
+        elseif split.PAYMENT ~= nil then
+            send_payment_info(split[2],split[3],split[4],split[5])
+        elseif split.QUIT ~= nil then
+            uart.on("data")
+        else
+            print("BAD COMMAND")
+        end
+    
+    end
+    ,0)
+
