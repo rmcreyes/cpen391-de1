@@ -185,8 +185,8 @@ void RS232Flush(void) {
     // while bit 0 of Line Status Register == ‘1’
     // read unwanted char out of fifo receiver buffer
     char c;
-    while(BTTestForReceivedData()){
-        c = *BT_ReceiverFifo;
+    while(RS232TestForReceivedData()){
+        c = *RS232_ReceiverFifo;
     }
 }
 

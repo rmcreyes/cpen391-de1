@@ -85,10 +85,14 @@ int initWifi(){
     putcharRS232('\n');
     putcharRS232('\r');
     putcharRS232('\n');
-    sleep(1);
-    RS232Flush();
     send_str(exec);
+    putcharRS232('\r');
+    putcharRS232('\n');
+    putcharRS232('\r');
+    putcharRS232('\n');
     sleep(5);
+    reset_meter();
+    sleep(1);
     RS232Flush();
     return 0;
 }

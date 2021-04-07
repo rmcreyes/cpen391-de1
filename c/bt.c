@@ -48,7 +48,7 @@ int ok_done(char * plate, char * buf, int bufSize) {
     strcat(bt_send_buf, ok_done_str);
     strcat(bt_send_buf, plate);
     sendBTLine(bt_send_buf);
-    return receiveBTLine(buf,bufSize);
+    return 0;
 }
 
 int ok_user(char * plate, char * buf, int bufSize, int isUser){
