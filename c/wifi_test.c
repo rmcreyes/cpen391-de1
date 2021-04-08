@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "wifi.h"
 #include "rfs.h"
+#include "wifi.h"
 #include <stdlib.h>
 
 int main(int argc, char ** argv) {
@@ -9,5 +9,10 @@ int main(int argc, char ** argv) {
     initWifi();
     notify(argv[1], buf, 100, 1);
     printf("Notify Park: %s\n", buf);
+    notify(argv[1], buf, 100, 1);
+    printf("Notify Park: %s\n", buf);
+    notify(argv[1], buf, 100, 1);
+    printf("Notify Park: %s\n", buf);
+    close_wifi();
     return 0;
 }

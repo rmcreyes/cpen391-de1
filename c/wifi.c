@@ -1,4 +1,5 @@
 #include "rfs.h"
+#include "wifi.h"
 #include <unistd.h>
 #include <string.h>
 
@@ -8,12 +9,13 @@
 char * exec = "dofile(\"send_http_requests.lua\")";
 char send_buf[MAX_BUF];
 
-const char * parked_func = "notify_license_plate_occupied(\"";
-const char * left_func = "notify_license_plate_left(\"";
-const char * correct = "confirm_parking_correct_license_plate(\"";
-const char * incorrect = "confirm_parking_incorrect_license_plate(\"";
-const char * reset_str = "reset_meter()";
-const char * send_payment_str = "send_payment_info(\"";
+const char * parked_func = "OCCUPIED,";
+const char * left_func = "LEFT,";
+const char * correct = "CORRECT,";
+const char * incorrect = "INCORRECT,";
+const char * reset_str = "RESET";
+const char * send_payment_str = "PAYMENT,";
+const char * quit = "QUIT";
 
 // DO NOT INCLUDE \r\n in your payload.
 void send_str(char * str) {
@@ -28,12 +30,9 @@ void send_str(char * str) {
 int receiveLine(char * buf, int bufSize) {
     char * c = buf;
     int i = 0;
-
-    while(getcharRS232() != '\n');
-    while(getcharRS232() != ' ');
     do {
         *c = getcharRS232();
-        if (*c == '\r')
+        if (*c == '\n')
             break;
         c++;
     } while(1);
@@ -44,7 +43,6 @@ int receiveLine(char * buf, int bufSize) {
 
 char * craft_notify(char * plate) {
     strcat(send_buf, plate);
-    strcat(send_buf, "\")");
     return send_buf;
 }
 
@@ -60,9 +58,8 @@ char * craft_left(char * plate) {
 
 char * craft_confirm(char * id, char * plate) {
     strcat(send_buf, id);
-    strcat(send_buf, "\", \"");
+    strcat(send_buf, ",");
     strcat(send_buf, plate);
-    strcat(send_buf, "\")");
     return send_buf;
 }
 
@@ -78,21 +75,12 @@ char * craft_incorrect(char * id, char * plate){
 
 int initWifi(){
     memset(send_buf, 0, MAX_BUF);
-    
-    putcharRS232('\r');
-    putcharRS232('\n');
-    putcharRS232('\r');
-    putcharRS232('\n');
-    putcharRS232('\r');
-    putcharRS232('\n');
     send_str(exec);
-    putcharRS232('\r');
-    putcharRS232('\n');
-    putcharRS232('\r');
-    putcharRS232('\n');
-    sleep(5);
-    reset_meter();
-    sleep(1);
+    int c;
+    while(c = getcharRS232()!= '1' && c != '5');
+    sleep(3);
+    reset_meter(0,0);
+    sleep(3);
     RS232Flush();
     return 0;
 }
@@ -139,16 +127,21 @@ int send_payment(char * parking_id, char * card_num, char * exp, char * cvv, cha
     int n;
     strcat(send_buf, send_payment_str);
     strcat(send_buf, parking_id);
-    strcat(send_buf, "\", \"");
+    strcat(send_buf, ",");
     strcat(send_buf, card_num);
-    strcat(send_buf, "\", \"");
+    strcat(send_buf, ",");
     strcat(send_buf, exp);
-    strcat(send_buf, "\", \"");
+    strcat(send_buf, ",");
     strcat(send_buf, cvv);
-    strcat(send_buf, "\")");
     send_str(send_buf);
     if (buf)
         n = receiveLine(buf, bufSize);
     memset(send_buf, 0, MAX_BUF);
     return n;
+}
+
+int close_wifi() {
+    send_str(quit);
+    memset(send_buf, 0, MAX_BUF);
+    return 0;
 }
