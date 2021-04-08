@@ -12,10 +12,14 @@ def init_rfs_wifi():
     x.initWifi()
     print(x)
 
+def close_wifi():
+    x.close_wifi()
+    print("closed wifi")
+
 # returns is_occupied, cost 
 def update_parking_status(plate, parked):
     x.argtypes = [c_char_p, c_char_p, c_int, c_int]
-    x.confirm_wifi.restype = c_int
+    x.notify.restype = c_int
 
     plate_c = plate.encode('utf-8')
     buf = create_string_buffer(BUF_SIZE)
@@ -25,9 +29,8 @@ def update_parking_status(plate, parked):
 
     print("about to call notify..")
     n = x.notify(plate_c, buf, c_int(BUF_SIZE), parked_c)
-    print("done call notify..")
-
-    return buf.value.decode("utf-8")[1:-1]
+    print("done call to notify..")
+    return buf.value.decode("utf-8").strip()[1:-1]
 
 # returns is_user, new_plate, parking_id 
 def confirm_wifi(plate, id, correct):
@@ -41,7 +44,16 @@ def confirm_wifi(plate, id, correct):
 
     x.confirm_wifi(id_c, plate_c, buf, c_int(BUF_SIZE), correct_c)
 
-    return buf.value.decode("utf-8")
+    ret = buf.value.decode("utf-8")
+
+    ret_array = ret.split(",")
+
+    isUser = ret_array[0].strip()
+    print("isUser is " + isUser)
+    if isUser == "true":
+        return True
+    else:
+        return False
 
 # returns confirm, timeout, plate
 def confirm_bluetooth(plate):
@@ -67,7 +79,6 @@ def confirm_bluetooth(plate):
         return False, True, ""
     else:
         if confirm_str == "TRUE":
-            print("true here")
             confirm = True
         else:
             confirm = False
@@ -138,9 +149,6 @@ def ok_user(plate, isUser):
     for i in range(len(ret_array)):
         ret_array[i] = ret_array[i].strip()
 
-    print(ret)
-    print(ret_array)
-
     if ret_array[1] == "TIMEOUT":
         return "", "", "", True
 
@@ -161,8 +169,6 @@ def new_parked(plate):
         if not " " in parking_id:
             break
 
-    print(parking_id)
-
     confirm, timeout, plate = confirm_bluetooth(plate)
 
     if timeout:
@@ -170,9 +176,9 @@ def new_parked(plate):
         reset_meter()
         return plate
 
-    is_user = False
-    # is_user, plate, parking_id = confirm_wifi(plate, parking_id, confirm)
-    confirm_wifi(plate, parking_id, confirm)
+    is_user= confirm_wifi(plate, parking_id, confirm)
+
+    print(is_user)
     if not is_user:
         card_num, exp, cvv, timeout = ok_user(plate, False) 
         if timeout:
@@ -180,6 +186,8 @@ def new_parked(plate):
             return plate
 
         send_payment(parking_id, card_num, exp, cvv)
+    else:
+        ok_user(plate, True) 
 
     ok_done(plate)
     return plate

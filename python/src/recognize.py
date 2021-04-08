@@ -106,36 +106,40 @@ def perform_reading_loop():
     if constants.PROMPT_CHECKER:
         should_be = input("what is the plate number of what you're about to scan?\n> ")
 
-    while True:
-        img = None
-        should_skew = True
-        corners,img, should_skew = photo_preprocessing.take_photo()
-        if (corners is None):
-            break
+    try:
+        while True:
+            img = None
+            should_skew = True
+            corners,img, should_skew = photo_preprocessing.take_photo()
+            if (corners is None):
+                break
 
-        plate_num = perform_read(corners,img,should_skew,should_be)
+            plate_num = perform_read(corners,img,should_skew,should_be)
 
-        if len(plate_num) == 0:
-            writing_str = f"NOTHING PARKED - {datetime.now().time()}\n"
-        else:
-            writing_str = f"{plate_num} PARKED - {datetime.now().time()}\n"
-        with open(filename, "a") as f:
-            f.write(writing_str)
-
-        if not prev_parked == plate_num:
             if len(plate_num) == 0:
-                print("nothing parked now")
-                if constants.USE_C:
-                    c_comm_interfacing_utils.leave(prev_parked)
+                writing_str = f"NOTHING PARKED - {datetime.now().time()}\n"
+            else:
+                writing_str = f"{plate_num} PARKED - {datetime.now().time()}\n"
+            with open(filename, "a") as f:
+                f.write(writing_str)
 
-            elif len(prev_parked) == 0:
-                print("something parked now")
-                if constants.USE_C:
-                    plate_num = c_comm_interfacing_utils.new_parked(plate_num)
-        
-        prev_parked = plate_num
-        
-        time.sleep(constants.PHOTO_INTERVAL)
+            if not prev_parked == plate_num:
+                if len(plate_num) == 0:
+                    print("nothing parked now")
+                    if constants.USE_C:
+                        c_comm_interfacing_utils.leave(prev_parked)
+
+                elif len(prev_parked) == 0:
+                    print("something parked now")
+                    if constants.USE_C:
+                        plate_num = c_comm_interfacing_utils.new_parked(plate_num)
+            
+            prev_parked = plate_num
+            
+            time.sleep(constants.PHOTO_INTERVAL)
+    except KeyboardInterrupt:
+        print("program stopped")
+    
         
 # Read a singular file into algorithm and return
 # args:
@@ -168,3 +172,6 @@ if __name__ == "__main__":
         perform_reading_loop()
     else:
         perform_reading_singular(args.file)
+        
+    if constants.USE_C:
+        c_comm_interfacing_utils.close_wifi()

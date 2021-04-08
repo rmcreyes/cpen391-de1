@@ -1,5 +1,8 @@
 import c_comm_interfacing_utils
 import time
+
+
+
 c_comm_interfacing_utils.init_rfs_wifi()
 
 print(c_comm_interfacing_utils.new_parked("ABCABC"))
@@ -26,3 +29,5 @@ print("called leave")
 # print("calling leave")
 # print(c_comm_interfacing_utils.ok_leave())
 # print("called leave")
+
+c_comm_interfacing_utils.close_wifi()
