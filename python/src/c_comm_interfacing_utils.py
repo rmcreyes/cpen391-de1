@@ -166,7 +166,7 @@ def ok_user(plate, isUser):
     ret_array = ret.split(",")
     if len(ret_array) == 1:
         return "", "", "", False
-        
+
     for i in range(len(ret_array)):
         ret_array[i] = ret_array[i].strip()
 
@@ -185,12 +185,7 @@ def ok_leave():
 # returns:
 # > the new plate number if re-entered by user
 def new_parked(plate):
-
-    # three attempts to notify
-    for i in range(3):
-        parking_id = update_parking_status(plate, True)
-        if not " " in parking_id:
-            break
+    parking_id = update_parking_status(plate, True)
 
     confirm, timeout, plate = confirm_bluetooth(plate)
 
