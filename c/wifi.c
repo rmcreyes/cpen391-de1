@@ -77,10 +77,12 @@ int initWifi(){
     memset(send_buf, 0, MAX_BUF);
     send_str(exec);
     int c;
-    while(c = getcharRS232()!= '1' && c != '5');
-    sleep(3);
-    reset_meter(0,0);
-    sleep(3);
+    while(c = getcharRS232(), c != '1' && c != '5');
+    sleep(10);
+    for(c = 0; c < 3; c++){
+        reset_meter(0,0);
+        sleep(1);
+    }
     RS232Flush();
     return 0;
 }

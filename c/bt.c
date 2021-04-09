@@ -19,7 +19,6 @@ void sendBTLine(char * str) {
     }
     putcharBT('\r');
     putcharBT('\n');
-    memset(bt_send_buf, 0, BT_BUF_SIZE);
 }
 
 int receiveBTLine(char * buf, int bufSize) {
@@ -37,6 +36,7 @@ int receiveBTLine(char * buf, int bufSize) {
 }
 
 int confirm_BT(char * plate, char * buf, int bufSize) {
+    memset(bt_send_buf, 0, BT_BUF_SIZE);
     strcat(bt_send_buf, confirm_str);
     strcat(bt_send_buf, plate);
     sendBTLine(bt_send_buf);
@@ -44,6 +44,7 @@ int confirm_BT(char * plate, char * buf, int bufSize) {
 }
 
 int ok_done(char * plate, char * buf, int bufSize) {
+    memset(bt_send_buf, 0, BT_BUF_SIZE);
     strcat(bt_send_buf, ok_done_str);
     strcat(bt_send_buf, plate);
     sendBTLine(bt_send_buf);
@@ -51,6 +52,7 @@ int ok_done(char * plate, char * buf, int bufSize) {
 }
 
 int ok_user(char * plate, char * buf, int bufSize, int isUser){
+    memset(bt_send_buf, 0, BT_BUF_SIZE);
     if(isUser)
         strcat(bt_send_buf, ok_user_str);
     else
@@ -63,6 +65,7 @@ int ok_user(char * plate, char * buf, int bufSize, int isUser){
 }
 
 int ok_leave() {
+    memset(bt_send_buf, 0, BT_BUF_SIZE);
     strcat(bt_send_buf, ok_leave_str);
     sendBTLine(bt_send_buf);
     return 0;
