@@ -107,18 +107,18 @@ end
 function handle_notify_license_plate_occupied_response(sck, response)
     body_table = get_json_body(response)
     if (body_table == nil) then
-        print("Couldn't find JSON body in response\n")
+        print("Couldn't find JSON body in response")
     else
         parking_id = body_table["parkingId"]
         if (parking_id == nil) then
             message = body_table["message"]
             if (message == nil) then
-                print("Unexpeted message body\n")
+                print("Unexpeted message body")
             else
-                print(message.."\n")
+                print(message)
             end
         else
-            print(parking_id.."\n")
+            print(parking_id)
         end
     end
 end
@@ -140,18 +140,18 @@ end
 function handle_notify_license_plate_left_response(sck, response)
     body_table = get_json_body(response)
     if (body_table == nil) then
-        print("Couldn't find JSON body in response\n")
+        print("Couldn't find JSON body in response")
     else
         cost = body_table["cost"]
         if (cost == nil) then
             message = body_table["message"]
             if (message == nil) then
-                print("Unexpeted message body\n")
+                print("Unexpeted message body")
             else
-                print(message.."\n")
+                print(message)
             end
         else
-            print("success\n")
+            print("success")
         end
     end
 end
@@ -173,24 +173,31 @@ end
 function handle_confirm_response(sck, response)
     body_table = get_json_body(response)
     if (body_table == nil) then
-        print("Couldn't find JSON body in response\n")
+        print("Couldn't find JSON body in response")
     else
         parking_id = body_table["parkingId"]
-        if (parking_id == nil) then
+        is_user = body_table["isUser"]
+        license_plate = body_table["licensePlate"]
+        if (is_user == nil) then
             message = body_table["message"]
             if (message == nil) then
-                print("Unexpeted message body\n")
+                print("Unexpeted message body")
             else
-                print(message.."\n")
+                print(message)
             end
         else
-            print(body_table.isUser..","..body_table.licensePlate..","..body_table.parkingID)
+            print(is_user)
         end
     end
 end
 
 -- Send a put request that confirms that the license plate we started the session with was correct
 function confirm_parking_correct_license_plate(parking_id, license_plate)
+    if DEBUG then
+        print(parking_id)
+        print(license_plate)
+    end
+
     body_table = {
         isNew = "false",
         licensePlate = "\""..license_plate.."\""
@@ -219,15 +226,15 @@ end
 function handle_reset_meter_response(sck, response)
     body_table = get_json_body(response)
     if (body_table == nil) then
-        print("Couldn't find JSON body in response\n")
+        print("Couldn't find JSON body in response")
     else
         cost = body_table["isOccupied"]
         if (cost == nil) then
             message = body_table["message"]
             if (message == nil) then
-                print("Unexpeted message body\n")
+                print("Unexpeted message body")
             else
-                print(message.."\n")
+                print(message)
             end
         else
             print(cost)
@@ -248,9 +255,9 @@ end
 -- Handle the response of the payment API, displays success or fail
 function send_payment_info_handler(sck, response)
     if string.find(response, "true") then
-        print("success\n")
+        print("success")
     else
-        print("fail\n")
+        print("fail")
     end
 end
 
@@ -270,8 +277,11 @@ end
 
 
 -- Access point to connect to for sending HTTP requests
-SSID = "LongFu"
-SSID_PASSWORD = "***REMOVED***"
+
+uart.setup(0, 115200, 8, uart.PARITY_NONE, uart.STOPBITS_1, 0)
+
+SSID = "***********"
+SSID_PASSWORD = "**********"
 
 HOST = "backend391.herokuapp.com"
 
@@ -296,10 +306,11 @@ print(wifi.sta.status())
 -- Prints the IP given to ESP8266
 print(wifi.sta.getip())
 
+reset_meter()
+
 uart.on("data", "\n", 
     function(data)
         data = data:sub(1, -3)
-        print(data)
         split = {}
         i = 1
         for word in string.gmatch(data, '([^,]+)') do
@@ -322,10 +333,11 @@ uart.on("data", "\n",
             send_payment_info(split[2],split[3],split[4],split[5])
         elseif split.QUIT ~= nil then
             uart.on("data")
+        elseif split.DEBUG ~= nil then
+            DEBUG = not DEBUG
         else
             print("BAD COMMAND")
         end
     
     end
     ,0)
-
