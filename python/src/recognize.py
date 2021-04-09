@@ -95,6 +95,8 @@ def perform_read(corners, img, should_skew, should_be):
 # Perform a read from the camera every <PHOTO_INTERVAL> seconds and writes results to a file called "<OUTPUT_FILENAME_PREFIX> <DATE>"
 def perform_reading_loop():
 
+    prev_parked = ""
+
     filename = f"{constants.OUTPUT_FILENAME_PREFIX} {datetime.today().strftime('%Y-%m-%d')}.txt"
     with open(filename, "w") as f:
         f.write("START:\n")
@@ -111,12 +113,24 @@ def perform_reading_loop():
             break
 
         plate_num = perform_read(corners,img,should_skew,should_be)
+
         if len(plate_num) == 0:
             writing_str = f"NOTHING PARKED - {datetime.now().time()}\n"
         else:
             writing_str = f"{plate_num} PARKED - {datetime.now().time()}\n"
         with open(filename, "a") as f:
             f.write(writing_str)
+
+        if not prev_parked == plate_num:
+            if len(plate_num) == 0:
+                print("nothing parked now")
+            elif len(prev_parked) == 0:
+                print("something parked now")
+            else:
+                print("something NEW parked")
+        
+        prev_parked = plate_num
+        
         time.sleep(constants.PHOTO_INTERVAL)
         
 # Read a singular file into algorithm and return
