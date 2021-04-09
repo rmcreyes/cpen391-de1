@@ -63,8 +63,10 @@ def confirm_wifi(plate, id, correct):
 
     isUser = ret_array[0].strip()
     if isUser == "true":
+        print("Plate belongs to a user.")
         return True
     else:
+        print("Plate does not belong to a user.")
         return False
 
 # Confirm the scanned plate number with the user on the hardware app
