@@ -45,7 +45,7 @@ def confirm_wifi(plate, id, correct):
     x.confirm_wifi(id_c, plate_c, buf, c_int(BUF_SIZE), correct_c)
 
     ret = buf.value.decode("utf-8")
-
+    print(ret)
     ret_array = ret.split(",")
 
     isUser = ret_array[0].strip()
@@ -145,7 +145,8 @@ def ok_user(plate, isUser):
 
     ret = buf.value.decode("utf-8")
     ret_array = ret.split(",")
-
+    if len(ret_array) == 1:
+        return
     for i in range(len(ret_array)):
         ret_array[i] = ret_array[i].strip()
 
