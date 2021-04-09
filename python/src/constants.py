@@ -37,3 +37,5 @@ PREDICT_MAP = ['0','1','2','3','4','5',
             'I','J','K','L','M','N',
             'O','P','Q','R','S','T',
             'U','V','W', 'X','Y','Z']
+
+COMM_BUF_SIZE = 300 # the size of the communication buffer for bluetooth and HTTP
