@@ -165,7 +165,8 @@ def ok_user(plate, isUser):
     ret = buf.value.decode("utf-8")
     ret_array = ret.split(",")
     if len(ret_array) == 1:
-        return
+        return "", "", "", False
+        
     for i in range(len(ret_array)):
         ret_array[i] = ret_array[i].strip()
 
