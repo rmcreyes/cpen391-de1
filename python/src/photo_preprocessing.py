@@ -52,9 +52,16 @@ def take_photo():
     # run webcam to take photo
 
     print("getting ready to take photo...")
+
     # define a video capture object 
     if constants.USE_C:
-        vid = cv2.VideoCapture(camera_config.USE_WEBCAM_NUMBER, cv2.CAP_V4L2) 
+        # on linux machine, webcam sometimes stop working... attempt to release video port in this case
+        try:
+            vid = cv2.VideoCapture(camera_config.USE_WEBCAM_NUMBER) 
+        except KeyboardInterrupt:
+            vid.release()
+            print("released video port")
+            raise KeyboardInterrupt()
     else:
         vid = cv2.VideoCapture(camera_config.USE_WEBCAM_NUMBER) 
 

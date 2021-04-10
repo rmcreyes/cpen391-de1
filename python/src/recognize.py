@@ -13,7 +13,8 @@ import platenum_postprocessing
 
 # file imports depend on how we are loading the neural network
 if constants.USE_C:
-    import c_interfacing_utils
+    import c_nn_interfacing_utils
+    import c_comm_interfacing_utils
 else:
     import load_ml_tensorflow
 
@@ -68,7 +69,7 @@ def perform_read(corners, img, should_skew, should_be):
 
         # either generate the bin files to perform low-level ML or use python ML to get answer
         if constants.USE_C:
-            plate_num = c_interfacing_utils.recog_images_c(recog_imgs)
+            plate_num = c_nn_interfacing_utils.recog_images_c(recog_imgs)
         else:
             plate_num = load_ml_tensorflow.recog_images_tensorflow(recog_imgs)
         
@@ -105,33 +106,40 @@ def perform_reading_loop():
     if constants.PROMPT_CHECKER:
         should_be = input("what is the plate number of what you're about to scan?\n> ")
 
-    while True:
-        img = None
-        should_skew = True
-        corners,img, should_skew = photo_preprocessing.take_photo()
-        if (corners is None):
-            break
+    try:
+        while True:
+            img = None
+            should_skew = True
+            corners,img, should_skew = photo_preprocessing.take_photo()
+            if (corners is None):
+                break
 
-        plate_num = perform_read(corners,img,should_skew,should_be)
+            plate_num = perform_read(corners,img,should_skew,should_be)
 
-        if len(plate_num) == 0:
-            writing_str = f"NOTHING PARKED - {datetime.now().time()}\n"
-        else:
-            writing_str = f"{plate_num} PARKED - {datetime.now().time()}\n"
-        with open(filename, "a") as f:
-            f.write(writing_str)
-
-        if not prev_parked == plate_num:
             if len(plate_num) == 0:
-                print("nothing parked now")
-            elif len(prev_parked) == 0:
-                print("something parked now")
+                writing_str = f"NOTHING PARKED - {datetime.now().time()}\n"
             else:
-                print("something NEW parked")
-        
-        prev_parked = plate_num
-        
-        time.sleep(constants.PHOTO_INTERVAL)
+                writing_str = f"{plate_num} PARKED - {datetime.now().time()}\n"
+            with open(filename, "a") as f:
+                f.write(writing_str)
+
+            if not prev_parked == plate_num:
+                if len(plate_num) == 0:
+                    print("nothing parked now")
+                    if constants.USE_C:
+                        c_comm_interfacing_utils.leave(prev_parked)
+
+                elif len(prev_parked) == 0:
+                    print("something parked now")
+                    if constants.USE_C:
+                        plate_num = c_comm_interfacing_utils.new_parked(plate_num)
+            
+            prev_parked = plate_num
+            
+            time.sleep(constants.PHOTO_INTERVAL)
+    except KeyboardInterrupt:
+        print("program stopped")
+    
         
 # Read a singular file into algorithm and return
 # args:
@@ -153,7 +161,8 @@ def perform_reading_singular(file):
 
 if __name__ == "__main__":
     if constants.USE_C:
-        c_interfacing_utils.load_c_nn()
+        c_nn_interfacing_utils.load_c_nn()
+        c_comm_interfacing_utils.init_rfs_wifi()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("file", nargs='?', const="")
@@ -163,3 +172,6 @@ if __name__ == "__main__":
         perform_reading_loop()
     else:
         perform_reading_singular(args.file)
+        
+    if constants.USE_C:
+        c_comm_interfacing_utils.close_wifi()
