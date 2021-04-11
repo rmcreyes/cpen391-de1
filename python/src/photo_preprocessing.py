@@ -57,7 +57,7 @@ def take_photo():
     if constants.USE_C:
         # on linux machine, webcam sometimes stop working... attempt to release video port in this case
         try:
-            vid = cv2.VideoCapture(camera_config.USE_WEBCAM_NUMBER) 
+            vid = cv2.VideoCapture(camera_config.USE_WEBCAM_NUMBER,cv2.CAP_V4L2)
         except KeyboardInterrupt:
             vid.release()
             print("released video port")
