@@ -129,7 +129,7 @@
    {
       datum _sortIndex
       {
-         value = "18";
+         value = "17";
          type = "int";
       }
       datum sopceditor_expanded
@@ -307,24 +307,11 @@
          type = "boolean";
       }
    }
-   element bit_flipper_0
-   {
-      datum _sortIndex
-      {
-         value = "17";
-         type = "int";
-      }
-      datum sopceditor_expanded
-      {
-         value = "0";
-         type = "boolean";
-      }
-   }
    element dot_0
    {
       datum _sortIndex
       {
-         value = "19";
+         value = "18";
          type = "int";
       }
    }
@@ -332,7 +319,7 @@
    {
       datum _sortIndex
       {
-         value = "20";
+         value = "19";
          type = "int";
       }
    }
@@ -1193,7 +1180,6 @@
   <parameter name="gui_refclk" value="50.0" />
   <parameter name="other_boards" value="None" />
  </module>
- <module name="bit_flipper_0" kind="bit_flipper" version="1.0" enabled="0" />
  <module name="dot_0" kind="dot" version="1.0" enabled="1" />
  <module
    name="onchip_memory2_0"
@@ -1303,15 +1289,6 @@
    end="IO_Bridge.avalon_slave">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x00010000" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="15.0"
-   start="ARM_A9_HPS.h2f_lw_axi_master"
-   end="bit_flipper_0.avalon_slave_0">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x2040" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1624,11 +1601,6 @@
    kind="clock"
    version="15.0"
    start="System_PLL.sys_clk"
-   end="bit_flipper_0.clock" />
- <connection
-   kind="clock"
-   version="15.0"
-   start="System_PLL.sys_clk"
    end="dot_0.clock" />
  <connection
    kind="clock"
@@ -1754,11 +1726,6 @@
    kind="reset"
    version="15.0"
    start="ARM_A9_HPS.h2f_reset"
-   end="bit_flipper_0.reset" />
- <connection
-   kind="reset"
-   version="15.0"
-   start="ARM_A9_HPS.h2f_reset"
    end="LCD_0.reset" />
  <connection
    kind="reset"
@@ -1845,11 +1812,6 @@
    version="15.0"
    start="System_PLL.reset_source"
    end="IO_Bridge.reset" />
- <connection
-   kind="reset"
-   version="15.0"
-   start="System_PLL.reset_source"
-   end="bit_flipper_0.reset" />
  <connection
    kind="reset"
    version="15.0"

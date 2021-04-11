@@ -170,7 +170,11 @@ module MyComputer_Verilog (
 	
 	// for LCD display connected to PIO port, 11 bits used
 	wire unsigned [15:0] LCD_WIRE;
-	
+
+
+	assign GPIO_1[1] = KEY[0];
+	assign GPIO_1[10] = 1'b1;
+	assign GPIO_1[21] = 1'b0;
  
 	 ///////////////////////////////////////////////////////////////////////////////////////
 	 // u0 is an instanace of the QSYS generated computer
@@ -378,8 +382,8 @@ module MyComputer_Verilog (
 				 .GPS_RxData 					(),
 				 .GPS_TxData 					(),
 
-				 .BlueTooth_RxData 			(),
-				 .BlueTooth_TxData 			(),
+				 .BlueTooth_RxData 			(GPIO_1[18]),
+				 .BlueTooth_TxData 			(GPIO_1[19]),
 				 
 				 .TouchScreen_RxData 		(),
 				 .TouchScreen_TxData 		()
@@ -417,12 +421,6 @@ module MyComputer_Verilog (
 		
 		// // connect contrast pin on 24x2 LCD display to ground	
 		
-		//WIFI_EN
-		assign GPIO_1[10] = 1'b1;
-		assign GPIO_1[1] = 1'b1;
-		assign GPIO_1[20] = 1'b0;
-		assign GPIO_1[20] = 1'b0;
-		assign GPIO_1[12] = 1'b1;
 		// process to generate an acknowledge for the IO Bridge 1 clock cycle after bridge IO BUS ENABLE and then remove it 
 		always@(posedge CLOCK_50)
 		begin
