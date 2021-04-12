@@ -16,6 +16,7 @@
 // #define RS232_DivisorLatchLSB                   (*(volatile unsigned char *)(0xFF210200))
 // #define RS232_DivisorLatchMSB                   (*(volatile unsigned char *)(0xFF210202))
 
+// Calculate bases for memory mapped registers.
 #define IO_Base 0xFF210000
 
 #define RS_Base (0x200)

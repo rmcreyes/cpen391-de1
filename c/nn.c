@@ -24,7 +24,7 @@
 #include <string.h>
 #include "nn.h"
 
-#define SW 1
+#define SW 0
 #define SRAM 1
 
 int *sram0;
@@ -133,7 +133,7 @@ int init_accel(int *nn_in, int in_size, int l1_size, int l2_size, int l3_size) {
     return 0;
 }
 
-
+// Hardware dot product
 int dot(int vec1, int vec2, int row_len) {
     *(dot_base + 2) = (unsigned) vec1;
     *(dot_base + 3) = (unsigned) vec2;
@@ -142,6 +142,7 @@ int dot(int vec1, int vec2, int row_len) {
     return *dot_base;
 }
 
+// Software dot product. Used for testing.
 int dot_sw(volatile int* vec1, volatile int* vec2, int row_len) {
     int sum = 0;
     for (unsigned i = 0; i < row_len; ++i) {
@@ -150,6 +151,7 @@ int dot_sw(volatile int* vec1, volatile int* vec2, int row_len) {
     return sum;
 }
 
+// Apply a layer in software. Used for testing.
 void layer_sw(volatile int* in, volatile int* out, volatile int* weight, volatile int* bias, int row_len, int out_len, int relu) {
     int sum;
     for (int i = 0; i < out_len; i++, weight += row_len) {
@@ -161,6 +163,7 @@ void layer_sw(volatile int* in, volatile int* out, volatile int* weight, volatil
     }
 }
 
+// Apply a layer in hardware.
 void layer_hw(int in, int* out, int weight, int* bias, int row_len, int out_len, int relu) {
     int sum;
     for (int i = 0; i < out_len; i++, weight += row_len * sizeof(int)) {
@@ -172,6 +175,7 @@ void layer_hw(int in, int* out, int weight, int* bias, int row_len, int out_len,
     }
 }
 
+// Free resources for the HW accelerator.
 int destroy_accel() {
     int err;
     err  = unmap_physical(mem_base, MEM_SIZE);
@@ -186,6 +190,7 @@ int destroy_accel() {
         return -1;
 }
 
+// Find the max index in an array.
 int max(volatile int* arr, int size) {
     int max = 0;
     for (int i = 0; i < size; i++) {
@@ -196,7 +201,9 @@ int max(volatile int* arr, int size) {
 }
 
 
-
+// Runs the ML algorithm.
+// in: the input data
+// returns: the result. Numerial numbers are just their decimal representation. Alphabet characters start from 10.
 int run(int *in) {
 
     #if SW
