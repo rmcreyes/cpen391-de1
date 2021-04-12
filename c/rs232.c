@@ -1,4 +1,5 @@
 #include "mapping.h"
+#include "rs232.h"
 #include <stdio.h>
 #include <unistd.h>
 
@@ -46,9 +47,13 @@ volatile unsigned char * RS232_DivisorLatchMSB;
 int memFd = -1;
 
 
-void initMap() {
+int initMap() {
     memFd = open_physical(memFd);
+    if (memFd < 0)
+        return memFd;
     RS232 = map_physical(memFd, IO_Base, 0x10);
+    if (!RS232)
+        return -1;
     RS232_ReceiverFifo = RS232 + RS_ReceiverBase;
     RS232_TransmitterFifo = RS232 + RS_TransmitterBase;
     RS232_InterruptEnable = RS232 + RS_InterruptEnable;
@@ -62,6 +67,7 @@ void initMap() {
     RS232_DivisorLatchLSB = RS232 + RS_DivisorLSBBase;
     RS232_DivisorLatchMSB = RS232 + RS_DivisorMSBBase;
     close_physical(memFd);
+    return 0;
 }
 
 void closeRS232(void) {
@@ -70,13 +76,16 @@ void closeRS232(void) {
 }
 
 
-void Init_RS232(void) {
+int Init_RS232(void) {
     // set bit 7 of Line Control Register to 1, to gain access to the baud rate registers
     // set Divisor latch (LSB and MSB) with correct value for required baud rate
     // set bit 7 of Line control register back to 0 and
     // program other bits in that reg for 8 bit data, 1 stop bit, no parity etc
     // Reset the Fifo’s in the FiFo Control Reg by setting bits 1 & 2
     // Now Clear all bits in the FiFo control registers
+    int err = initMap();
+    if(err)
+        return err;
     *RS232_LineControlReg = 0x80;
     // 115200 Baud rate. Divisor = 27 = 0x1B
     *RS232_DivisorLatchLSB = 0x1B;
@@ -86,6 +95,7 @@ void Init_RS232(void) {
     *RS232_LineControlReg =  0x03;
     *RS232_FifoControlReg = 0x06;
     *RS232_FifoControlReg = 0x0;
+    return 0;
 }
 
 // the following function polls the UART to determine if any character
@@ -125,51 +135,4 @@ void RS232Flush(void) {
     while(RS232TestForReceivedData()){
         c = *RS232_ReceiverFifo;
     }
-}
-
-int main() {
-    char input[50];
-    char output[50];
-    char * i;
-    initMap();
-    Init_RS232();
-
-    putcharRS232('\r');
-    putcharRS232('\n');
-    putcharRS232('\r');
-    putcharRS232('\n');
-    putcharRS232('\r');
-    putcharRS232('\n');
-    sleep(2);
-    RS232Flush();
-
-    while (1) {
-        printf("Input: ");
-        gets(input);
-        for (i = input; *i != 0; i++) {
-            putcharRS232(*i);
-        }
-        putcharRS232('\r');
-        putcharRS232('\n');
-        i = output;
-        *i = getcharRS232();
-        while (*i != '\n') {
-            i++;
-            *i = getcharRS232();
-        }
-        if(!RS232TestForReceivedData()) {
-            i++;
-            *i = getcharRS232();
-            while (*i != '\n' && *i != '>') {
-                i++;
-                *i = getcharRS232();
-            }
-        }
-        *i = 0;
-        printf("Received: %s", output);
-        printf("\n---------------------------\n");
-        sleep(1);
-        RS232Flush();
-    }
-    return 0;
 }

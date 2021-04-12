@@ -1,7 +1,7 @@
 OUTPUT_FILENAME_PREFIX = "output/log_"
 PHOTO_INTERVAL = 5 # number of seconds between shots
 
-USE_C = False # when false, the script will use ML model to read plate
+USE_C = True # when false, the script will use ML model to read plate
 
 CREATE_BIN = False # generate a bin file; must also enable USE_C
 GEN_EXTRACTED_LETTER_PNG = False # whether to always generate letters extracted in output/*
@@ -25,7 +25,8 @@ L3_SIZE = 36
 
 NN_BIN = 'models/model_hl_1000_750_generated_nn.bin' # neural network weights and biases (bin format)
 NN_H5 = "models/model_hl_1000_750.h5" # neural network weights and biases (h5 format)
-SO_FILE = "./src/compiled_c/libnn.so"
+LIBNN_SO_FILE = "./src/compiled_c/libnn.so"
+RFS_SO_FILE = "./src/compiled_c/rfs.so"
 
 # mapping labels to actual character
 # 0-9 represents the 0-9 characters
@@ -36,3 +37,5 @@ PREDICT_MAP = ['0','1','2','3','4','5',
             'I','J','K','L','M','N',
             'O','P','Q','R','S','T',
             'U','V','W', 'X','Y','Z']
+
+COMM_BUF_SIZE = 300 # the size of the communication buffer for bluetooth and HTTP

@@ -768,7 +768,7 @@ agreement for further details.
 		(text "clk" (rect 197 1307 412 2624)(font "Arial" (color 0 0 0)))
 		(text "system_pll_ref_reset" (rect 67 1323 254 2659)(font "Arial" (color 128 0 0)(font_size 9)))
 		(text "reset" (rect 197 1347 424 2704)(font "Arial" (color 0 0 0)))
-		(text " CPEN391_Computer " (rect 500 1368 1108 2746)(font "Arial" ))
+		(text " system " (rect 557 1368 1162 2746)(font "Arial" ))
 		(line (pt 192 32)(pt 400 32)(line_width 1))
 		(line (pt 400 32)(pt 400 1368)(line_width 1))
 		(line (pt 192 1368)(pt 400 1368)(line_width 1))

@@ -3,7 +3,7 @@ from ctypes import *
 import constants
 
 if constants.USE_C:
-    x = CDLL(constants.SO_FILE)
+    x = CDLL(constants.LIBNN_SO_FILE)
 
 # convert the openCV images to binary arrays and loads them into the custom NN
 # args:
