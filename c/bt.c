@@ -12,6 +12,7 @@ const char * ok_not_user_str = "OK,NOTUSER,";
 
 char bt_send_buf[BT_BUF_SIZE];
 
+//Send str to the BT module as one line.
 void sendBTLine(char * str) {
     char * c;
     for(c = str; *c != 0; c++){
@@ -21,6 +22,7 @@ void sendBTLine(char * str) {
     putcharBT('\n');
 }
 
+//Receive until \r
 int receiveBTLine(char * buf, int bufSize) {
     char * c = buf;
     int i = 0;
@@ -35,6 +37,7 @@ int receiveBTLine(char * buf, int bufSize) {
     return i;
 }
 
+//Send a confirm request to the Android app.
 int confirm_BT(char * plate, char * buf, int bufSize) {
     memset(bt_send_buf, 0, BT_BUF_SIZE);
     strcat(bt_send_buf, confirm_str);
@@ -43,6 +46,7 @@ int confirm_BT(char * plate, char * buf, int bufSize) {
     return receiveBTLine(buf,bufSize);
 }
 
+//Send a ok_done request
 int ok_done(char * plate, char * buf, int bufSize) {
     memset(bt_send_buf, 0, BT_BUF_SIZE);
     strcat(bt_send_buf, ok_done_str);
