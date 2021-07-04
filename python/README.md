@@ -24,7 +24,7 @@ This code runs on the DE1-SoC Ubuntu Distribution for our CPEN 391 project.
   - It will try to detect the edge of the plate, but will settle for the full image if it can’t find it.
 - It converts photo to HSV to use colour profile to find letter shapes.
 
-![Colour Manipulation on Plate Photo](img/plate-img-manip.png)
+<img src="img/plate-img-manip.png" width="400px" alt="Colour Manipulation on Plate Photo"/>
 
 - It extracts letters and uses custom-trained neural network to find what the character detected is.
 - It writes the result to log file.
